@@ -10,7 +10,8 @@ var LIBRARY_PATHS = [];
 
 switch (os.platform()) {
   case 'darwin':
-    LIBRARY_PATHS.push('/Applications/Adium.app/Contents/Frameworks/AdiumLibpurple.framework/AdiumLibpurple');
+    LIBRARY_PATHS.push('/opt/pidgin-2.10.11/lib/libpurple.0.dylib');
+    //LIBRARY_PATHS.push('/Applications/Adium.app/Contents/Frameworks/AdiumLibpurple.framework/AdiumLibpurple');
     //LIBRARY_PATHS.push(path.join(process.env.HOME, 'Applications/Adium.app/Contents/Frameworks/libpurple.framework/libpurple'));
     //LIBRARY_PATHS.push('/Users/tjfontaine/Development/adium/Dependencies/build/lib/libpurple.0.dylib');
     break;
@@ -50,12 +51,12 @@ var Purple = function (args) {
   lib.purple_debug_set_enabled(args.debug ? 1 : 0);
 
   //TODO XXX FIXME Darwin only
-  lib.purple_init_ssl_plugin();
-  lib.purple_init_ssl_openssl_plugin();
-  lib.purple_init_ssl_cdsa_plugin();
+//  lib.purple_init_ssl_plugin();
+//  lib.purple_init_ssl_openssl_plugin();
+//  lib.purple_init_ssl_cdsa_plugin();
 
   conv_ui_ops = new types.PurpleConversationUiOps();
-  conv_ui_ops._pointer.fill(0);
+  conv_ui_ops.ref().fill(0);
 
   function ui_init() {
     lib.purple_conversations_set_ui_ops(conv_ui_ops.ref());
@@ -63,7 +64,7 @@ var Purple = function (args) {
   ui_init_ptr = FFI.Callback(ref.types.void, [], ui_init);
 
   uiops = new types.PurpleCoreUiOps();
-  uiops._pointer.fill(0);
+  uiops.ref().fill(0);
   uiops.ui_init = ui_init_ptr;
   lib.purple_core_set_ui_ops(uiops.ref());
 
