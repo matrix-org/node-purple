@@ -1,0 +1,10 @@
+bot_username: purplebridge
+homeserver:
+  server_name: localhost
+  url: "http://localhost:8008"
+user_prefixes:
+  prpl-aim: aim  # matrix users communicate with @aim_$USERNAME
+accounts:
+ - protocol: prpl-aim
+   username: bob
+   password: secret

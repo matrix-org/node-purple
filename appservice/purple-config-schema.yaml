@@ -1,0 +1,28 @@
+type: object
+required: ["homeserver", "accounts"]
+properties:
+  homeserver:
+    type: object
+    required: ["server_name", "url"]
+    properties:
+      server_name:
+        type: string
+      url:
+        type: string
+  bot_username:
+    type: string
+  user_prefixes:
+    type: object
+    additionalProperties:
+      type: string
+  accounts:
+    type: array
+    items:
+      type: object
+      properties:
+        protocol:
+          type: string
+        username:
+          type: string
+        password:
+          type: string

@@ -12,6 +12,7 @@
   "author": "matrix.org",
   "license": "Apache-2.0",
   "dependencies": {
+    "matrix-appservice-bridge": "^0.1.2",
     "read": "^1.0.7"
   }
 }

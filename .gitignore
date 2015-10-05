@@ -1,3 +1,5 @@
 node_modules
 *.swp
 build/
+appservice/config.yaml
+appservice/purple-registration.yaml
