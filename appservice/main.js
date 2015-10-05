@@ -8,6 +8,7 @@ var SCHEMA_PATH = "purple-config-schema.yaml";
 
 function runMatrix(port, config) {
     var userPrefixInfo = getUserPrefixInfo(config);
+    var purple = runPurple(config.accounts[0]); // only one account for now.
     var bridgeController = {
         onUserQuery: function(queriedUser) {
             return {}; // auto-provision users with no additonal data
@@ -54,6 +55,8 @@ function runMatrix(port, config) {
                 var prplUser = room.get("purple_user");
                 // send body to purple_user
                 console.log("[MSG] Sending message to %s", JSON.stringify(prplUser));
+                var conv = purple.getConversation(prplUser.username);
+                conv.send(body);
             }
         }
     };
@@ -66,7 +69,7 @@ function runMatrix(port, config) {
     });
     console.log("Matrix-side listening on port %s", port);
     bridge.run(port, config);
-    runPurple(config.accounts[0]);
+
 }
 
 function runPurple(acc) {
@@ -76,6 +79,7 @@ function runPurple(acc) {
     });
     var Status = require('../lib/status');
     var Account = require('../lib/account');
+    var Conversation = require("../lib/conversation");
     var account = new Account(acc.username, acc.protocol);
     account.password = acc.password;
 
@@ -85,7 +89,9 @@ function runPurple(acc) {
     p.savedstatus = s;
 
     p.on('create_conversation', function (conversation) {
-        console.log("we have a new conversation", conversation.title, conversation.name);
+        console.log(
+            "[PURPLE-CREATE-CONV] %s %s", conversation.title, conversation.name
+        );
     });
 
     p.on('write_conv', function (conv, who, alias, message, flags, time) {
@@ -93,6 +99,14 @@ function runPurple(acc) {
             conv.send('you said "' + message + '"');
         }
     });
+    return {
+        purple: p,
+        getConversation: function(target) {
+            return new Conversation(
+                Conversation.IM, account.instance, target
+            );
+        }
+    };
 }
 
 function getUserPrefixInfo(cfg) {
