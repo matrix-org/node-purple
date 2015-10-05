@@ -1,12 +1,13 @@
 var Purple = require('../purple');
-var Status = require('../lib/status');
-var Account = require('../lib/account');
 var read = require("read");
 var username, password, protocol;
 
 var p = new Purple({
     debug: true,
 });
+
+var Status = require('../lib/status');
+var Account = require('../lib/account');
 
 p.protocols.forEach(function(prpl, i) {
     console.log("[%s] %s", i, prpl.name);

@@ -8,6 +8,7 @@ p.protocols.forEach(function(prpl) {
   console.log(prpl.id, prpl.name);
 });
 
+// This has to happen AFTER instantiating Purple
 var Status = require('./lib/status');
 var Account = require('./lib/account');
 
