@@ -21,25 +21,19 @@ var cli = new Cli({
         reg.setHomeserverToken(AppServiceRegistration.generateToken());
         reg.setAppServiceToken(AppServiceRegistration.generateToken());
         reg.setSenderLocalpart(cfg.bot_username);
-        var prefixes = {};
-        cfg.accounts.forEach(function(acc) {
-            if (cfg.user_prefixes[acc.protocol]) {
-                prefixes[cfg.user_prefixes[acc.protocol]] = true;
-            }
-            else {
-                prefixes[acc.protocol] = true;
-            }
-        });
-        Object.keys(prefixes).forEach(function(prefix) {
+        var userPrefixInfo = getUserPrefixInfo(cfg);
+        Object.keys(userPrefixInfo).forEach(function(prefix) {
             reg.addRegexPattern("users", "@" + prefix + "_.*", true);
         });
+        if (Object.keys(userPrefixInfo).length === 0) {
+            throw new Error("You must specify at least one account in the config.");
+        }
         callback(reg);
     },
     run: function(port, config) {
-        console.log("Run run run %s", config);
-        /*
+        var userPrefixInfo = getUserPrefixInfo(config);
         bridge = new Bridge({
-            homeserverUrl: config.homserver.url,
+            homeserverUrl: config.homeserver.url,
             domain: config.homeserver.server_name,
             registration: REGISTRATION_PATH,
 
@@ -50,43 +44,50 @@ var cli = new Cli({
 
                 onEvent: function(request, context) {
                     var event = request.getData();
-                    if (event.type !== "m.room.message" || !event.content || event.room_id !== ROOM_ID) {
-                        return;
+                    if (event.type === "m.room.member" &&
+                            event.content.membership === "invite") {
+                        // if they are inviting a virtual user, accept it.
+                        var invitee = context.targets.matrix;
+                        var account = getAccountForMatrixUser(invitee, userPrefixInfo);
+                        if (!account) {
+                            return; // invite not for a virtual user.
+                        }
+                        console.log(
+                            "[INVITE] Accepting invite from %s for %s to %s ",
+                            event.user_id, invitee.userId, event.room_id
+                        );
+                        var intent = bridge.getIntentFromLocalpart(invitee.localpart);
+                        intent.join(event.room_id).done(function() {
+                            console.log(
+                                "[INVITE] %s joined room %s", invitee.userId, event.room_id
+                            );
+                        }, function(err) {
+                            console.error(
+                                "[INVITE] %s failed to join room %s",
+                                invitee.userId, event.room_id, err
+                            );
+                        });
                     }
-                    requestLib({
-                        method: "POST",
-                        json: true,
-                        uri: SLACK_WEBHOOK_URL,
-                        body: {
-                            username: event.user_id,
-                            text: event.content.body
-                        }
-                    }, function(err, res) {
-                        if (err) {
-                            console.log("HTTP Error: %s", err);
-                        }
-                        else {
-                            console.log("HTTP %s", res.statusCode);
-                        }
-                    });
                 }
             }
         });
         console.log("Matrix-side listening on port %s", port);
-        bridge.run(port, config); */
+        bridge.run(port, config);
+        runPurple(config.accounts[0]);
     }
 })
 
 cli.run();
 
-function runPurple() {
+function runPurple(acc) {
+    console.log("Run with : %s (%s)", acc.username, acc.protocol)
     var p = new Purple({
-        debug: true,
+        debug: true
     });
     var Status = require('../lib/status');
     var Account = require('../lib/account');
-    var account = new Account(username, protocol);
-    account.password = password;
+    var account = new Account(acc.username, acc.protocol);
+    account.password = acc.password;
 
     p.enableAccount(account);
 
@@ -98,8 +99,28 @@ function runPurple() {
     });
 
     p.on('write_conv', function (conv, who, alias, message, flags, time) {
-        if (alias !== username && who !== username) {
+        if (alias !== acc.username && who !== acc.username) {
             conv.send('you said "' + message + '"');
         }
     });
+}
+
+function getUserPrefixInfo(cfg) {
+    var prefixes = {};
+    cfg.accounts.forEach(function(acc) {
+        if (cfg.user_prefixes[acc.protocol]) {
+            prefixes[cfg.user_prefixes[acc.protocol]] = acc;
+        }
+        else {
+            prefixes[acc.protocol] = acc;
+        }
+    });
+    return prefixes;
+}
+
+function getAccountForMatrixUser(matrixUser, userPrefixInfo) {
+    var userPrefix = Object.keys(userPrefixInfo).filter(function(prefix) {
+        return matrixUser.localpart.indexOf(prefix) === 0;
+    });
+    return userPrefixInfo[userPrefix];
 }
