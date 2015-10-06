@@ -20,7 +20,7 @@ Flows:
    - AppService forwards message to remote user.
    Replies:
     - Remote user responds to message.
-    - AppService forwards to matrix room. (which? All of them if >1 matrix user tried to speak to this remote user? Only the latest user (clobbering?))
+    - AppService forwards to all matrix rooms who have the @network_ user in them.
 
   Remote network initiated:
    - TODO
