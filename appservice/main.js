@@ -165,6 +165,9 @@ function runPurple(acc) {
     var p = new Purple({
         debug: true
     });
+    p.protocols.forEach(function(prpl) {
+      console.log(prpl.id, prpl.name);
+    });
     var Status = require('../lib/status');
     var Account = require('../lib/account');
     var Conversation = require("../lib/conversation");
