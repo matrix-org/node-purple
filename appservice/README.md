@@ -12,6 +12,7 @@ Architecture
  Matrix ---ASAPI---> AppService ---libpurple--> Remote Network
 ```
 
+```
 Flows:
   Matrix-initiated:
    - Matrix user invites `@network_$USERNAME:domain` to a room.
@@ -25,6 +26,7 @@ Flows:
    - TODO
    Replies:
     - TODO
+```
 
 Shortcomings:
  - Account is global not per user!

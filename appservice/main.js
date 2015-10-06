@@ -95,6 +95,8 @@ function runPurple(acc) {
     });
 
     p.on('write_conv', function (conv, who, alias, message, flags, time) {
+        console.log("conv=%s who=%s alias=%s msg=%s flags=%s time=%s",
+            conv, who, alias, message, flags, time);
         if (alias !== acc.username && who !== acc.username) {
             conv.send('you said "' + message + '"');
         }
