@@ -1,6 +1,19 @@
 Running
 =======
 
+```
+ $ npm install
+ $ cd appservice
+ $ npm install
+ <Edit config file>
+ $ node main.js -r -u "http://appservice.endpoint.url" -c <config_file>
+ <Dump registration on HS>
+ $ node main -c <config_file> -p PORT
+```
+
+Adding accounts:
+ - Edit the config file.
+
 
 Architecture
 ============
