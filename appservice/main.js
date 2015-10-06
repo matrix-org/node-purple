@@ -6,9 +6,81 @@ var Purple = require('../purple');
 var REGISTRATION_PATH = "purple-registration.yaml";
 var SCHEMA_PATH = "purple-config-schema.yaml";
 
+var accountsByUserId = {
+    //user_id: AccountInfo
+};
+
+function AccountInfo(accConfig, prplInst) {
+    this.protocol = accConfig.protocol;
+    this.username = accConfig.username;
+    this.password = accConfig.accConfig;
+    this.user_id = accConfig.user_id;
+    this.prpl = prplInst || null;
+}
+
+function UserPrefixMapper(config) {
+    var self = this;
+    this.protocolToPrefix = {};
+    this.prefixToProtocol = {};
+    var prefixSet = {};
+    config.accounts.forEach(function(acc) {
+        var prefix = config.user_prefixes[acc.protocol] || acc.protocol;
+        prefixSet[prefix] = true;
+        self.protocolToPrefix[acc.protocol] = prefix;
+        self.prefixToProtocol[prefix] = acc.protocol;
+    });
+    this.prefixes = Object.keys(prefixSet);
+}
+
+UserPrefixMapper.prototype.getUserLocalpartFromPurpleId = function(protocol, username) {
+    return this.protocolToPrefix[protocol] + "_" + username;
+};
+
+UserPrefixMapper.prototype.getPurpleInfoFromUserLocalpart = function(localpart) {
+    for (var i = 0; i < this.prefixes.length; i++) {
+        if (localpart.indexOf(this.prefixes[i]) === 0) {
+            return {
+                // +1 for the _
+                username: localpart.substring(this.prefixes[i].length + 1),
+                protocol: this.prefixToProtocol[this.prefixes[i]]
+            };
+        }
+    }
+};
+
+
 function runMatrix(port, config) {
-    var userPrefixInfo = getUserPrefixInfo(config);
-    var purple = runPurple(config.accounts[0]); // only one account for now.
+    var mapper = new UserPrefixMapper(config);
+    // run purple conns and set globals
+    config.accounts.forEach(function(a) {
+        var prpl = runPurple(a, mapper);
+        accountsByUserId[a.user_id] = new AccountInfo(a, prpl);
+        prpl.onMessage = function(conv, who, alias, message, protocol) {
+            var prefix = mapper.protocolToPrefix[protocol];
+            var intent = bridge.getIntentFromLocalpart(prefix + "_" + who);
+            console.log(
+                "[PRPL-MSG] from=%s protocol=%s (conn_behalf_of=%s)",
+                who, protocol, a.user_id
+            );
+            // get all rooms between this purple+matrix user
+            bridge.getRoomStore().getMatrixRooms({
+                "extras.purple_username": who,
+                "extras.purple_protocol": protocol,
+                "extras.matrix_user": a.user_id
+            }).done(function(rooms) {
+                console.log(
+                    "[PRPL-MSG] Sending msg from %s to %s rooms", who, rooms.length
+                );
+                rooms.forEach(function(r) {
+                    intent.sendText(r.roomId, message);
+                });
+                
+            }, function(e) {
+                console.error("[PRPL-MSG] Failed to get matrix rooms: %s", e);
+            })
+        };
+    });
+
     var bridgeController = {
         onUserQuery: function(queriedUser) {
             return {}; // auto-provision users with no additonal data
@@ -17,11 +89,17 @@ function runMatrix(port, config) {
         onEvent: function(request, context) {
             var event = request.getData();
             var room = context.rooms.matrix;
-            if (event.type === "m.room.member" &&
-                    event.content.membership === "invite") {
+
+            // only respond to stuff done by people with accounts configured.
+            if (Object.keys(accountsByUserId).indexOf(event.user_id) === -1) {
+                return;
+            }
+            var accountInfo = accountsByUserId[event.user_id];
+            
+            if (event.type === "m.room.member" && event.content.membership === "invite") {
                 // if they are inviting a virtual user, accept it.
                 var invitee = context.targets.matrix;
-                var account = getPurpleUserForMatrixUser(invitee, userPrefixInfo);
+                var account = mapper.getPurpleInfoFromUserLocalpart(invitee.localpart);
                 if (!account) {
                     return; // invite not for a virtual user.
                 }
@@ -37,7 +115,8 @@ function runMatrix(port, config) {
                         "[INVITE] %s joined room %s", invitee.userId, event.room_id
                     );
                     room.set("matrix_user", event.user_id);
-                    room.set("purple_user", account);
+                    room.set("purple_username", account.username);
+                    room.set("purple_protocol", account.protocol);
                     return bridge.getRoomStore().setMatrixRoom(room);
                 }).done(function() {
                     console.log(
@@ -50,12 +129,12 @@ function runMatrix(port, config) {
                     );
                 });
             }
-            else if (event.type === "m.room.message" && room.get("purple_user")) {
+            else if (event.type === "m.room.message" && room.get("purple_username")) {
                 var body = event.content.body;
-                var prplUser = room.get("purple_user");
+                var prplUsername = room.get("purple_username");
                 // send body to purple_user
-                console.log("[MSG] Sending message to %s", JSON.stringify(prplUser));
-                var conv = purple.getConversation(prplUser.username);
+                console.log("[MSG] Sending message to %s", prplUsername);
+                var conv = accountInfo.prpl.getConversation(prplUsername);
                 conv.send(body);
             }
         }
@@ -72,8 +151,16 @@ function runMatrix(port, config) {
 
 }
 
+/**
+ * Run a Purple instance
+ * @param {Object} acc The account object from the config.
+ * @return {Purple} An instantiated purple instance
+ */
 function runPurple(acc) {
-    console.log("Run with : %s (%s)", acc.username, acc.protocol)
+    console.log(
+        "Run with : %s (%s) on behalf of %s",
+        acc.username, acc.protocol, acc.user_id
+    );
     var p = new Purple({
         debug: true
     });
@@ -90,53 +177,28 @@ function runPurple(acc) {
 
     p.on('create_conversation', function (conversation) {
         console.log(
-            "[PURPLE-CREATE-CONV] %s %s", conversation.title, conversation.name
+            "[PRPL-CREATE-CONV] %s %s", conversation.title, conversation.name
         );
     });
 
     p.on('write_conv', function (conv, who, alias, message, flags, time) {
-        console.log("conv=%s who=%s alias=%s msg=%s flags=%s time=%s",
-            conv, who, alias, message, flags, time);
-        if (alias !== acc.username && who !== acc.username) {
-            conv.send('you said "' + message + '"');
+        try {
+            if (alias !== acc.username && who !== acc.username && p.onMessage) {
+                p.onMessage(conv, who, alias, message, acc.protocol);
+            }
+        }
+        catch (e) {
+            console.error("[PRPL-MSG] write_conv fail", e);
         }
     });
-    return {
-        purple: p,
-        getConversation: function(target) {
-            return new Conversation(
-                Conversation.IM, account.instance, target
-            );
-        }
+
+    p.getConversation = function(target) {
+        return new Conversation(
+            Conversation.IM, account.instance, target
+        );
     };
-}
 
-function getUserPrefixInfo(cfg) {
-    var prefixes = {};
-    cfg.accounts.forEach(function(acc) {
-        if (cfg.user_prefixes[acc.protocol]) {
-            prefixes[cfg.user_prefixes[acc.protocol]] = acc;
-        }
-        else {
-            prefixes[acc.protocol] = acc;
-        }
-    });
-    return prefixes;
-}
-
-function getPurpleUserForMatrixUser(matrixUser, userPrefixInfo) {
-    var userPrefixes = Object.keys(userPrefixInfo);
-    for (var i = 0; i < userPrefixes.length; i++) {
-        if (matrixUser.localpart.indexOf(userPrefixes[i]) === 0) {
-            return {
-                // +1 for the _
-                username: matrixUser.localpart.substring(userPrefixes[i].length + 1),
-                accountHolder: userPrefixInfo[userPrefixes[i]].username,
-                protocol: userPrefixInfo[userPrefixes[i]].protocol
-            };
-        }
-    }
-    return null;
+    return p;
 }
 
 var cli = new Cli({
@@ -154,11 +216,11 @@ var cli = new Cli({
         reg.setHomeserverToken(AppServiceRegistration.generateToken());
         reg.setAppServiceToken(AppServiceRegistration.generateToken());
         reg.setSenderLocalpart(cfg.bot_username);
-        var userPrefixInfo = getUserPrefixInfo(cfg);
-        Object.keys(userPrefixInfo).forEach(function(prefix) {
+        var mapper = new UserPrefixMapper(cfg);
+        mapper.prefixes.forEach(function(prefix) {
             reg.addRegexPattern("users", "@" + prefix + "_.*", true);
         });
-        if (Object.keys(userPrefixInfo).length === 0) {
+        if (mapper.prefixes.length === 0) {
             throw new Error("You must specify at least one account in the config.");
         }
         callback(reg);

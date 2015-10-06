@@ -26,3 +26,6 @@ properties:
           type: string
         password:
           type: string
+        user_id:
+          type: string
+      required: ["protocol", "username", "password", "user_id"]
