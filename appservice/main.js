@@ -71,8 +71,9 @@ function runMatrix(port, config) {
                 console.log(
                     "[PRPL-MSG] Sending msg from %s to %s rooms", who, rooms.length
                 );
+                var content = mapMessageToMatrix(protocol, message);
                 rooms.forEach(function(r) {
-                    intent.sendText(r.roomId, message);
+                    intent.sendEvent(r.roomId, "m.room.message", content);
                 });
                 
             }, function(e) {
@@ -199,6 +200,29 @@ function runPurple(acc) {
     };
 
     return p;
+}
+
+/**
+ * Map a message from one protocol to a matrix message.
+ * @param {string} protocol The protocol e.g. prpl-aim
+ * @param {string} message The message
+ * @return {Object} The matrix message to respond with.
+ */
+function mapMessageToMatrix(protocol, message) {
+    switch (protocol) {
+        case "prpl-aim":
+            return {
+                msgtype: "m.text",
+                body: message,
+                format: "org.matrix.custom.html",
+                formatted_body: message
+            };
+            break;
+    }
+    return {
+        msgtype: "m.text",
+        body: message
+    };
 }
 
 var cli = new Cli({
