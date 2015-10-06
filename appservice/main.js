@@ -188,10 +188,11 @@ function runPurple(acc) {
     p.on('write_conv', function (conv, who, alias, message, flags, time) {
         try {
             console.log(
-                "write_conv who=%s alias=%s msg=%s acc_username=%s",
-                who, alias, message.substring(0, 10), acc.username
+                "write_conv who=%s alias=%s msg=%s acc_username=%s acc_alias=%s",
+                who, alias, message.substring(0, 10), acc.username,
+                account.alias
             );
-            if (alias !== acc.username && who !== acc.username && p.onMessage) {
+            if (alias !== account.alias && who !== acc.username && p.onMessage) {
                 p.onMessage(conv, who, alias, message, acc.protocol);
             }
         }
