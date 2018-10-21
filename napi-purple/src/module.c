@@ -1,18 +1,40 @@
 #include <node_api.h>
 #include <glib.h>
-#include <core.h>
-#include <stdio.h>
 
-#include "bindings/core.c"
+#include "bindings/b_core.h"
+#include "bindings/b_debug.h"
 
 
 napi_value Init(napi_env env, napi_value exports) {
   napi_value _fn_purple_core_get_version;
-  napi_status status;
+  napi_value _fn_purple_core_init;
+  napi_value _fn_purple_core_quit;
+  napi_value _fn_purple_debug_set_enabled;
 
+  /* Create core */
+  napi_value ns_core;
+  napi_create_object(env, &ns_core);
 
   napi_create_function(env, NULL, 0, _purple_core_get_version, NULL, &_fn_purple_core_get_version);
-  napi_set_named_property(env, exports, "purple_core_get_version", _fn_purple_core_get_version);
+  napi_set_named_property(env, ns_core, "get_version", _fn_purple_core_get_version);
+
+  napi_create_function(env, NULL, 0, _purple_core_init, NULL, &_fn_purple_core_init);
+  napi_set_named_property(env, ns_core, "init", _fn_purple_core_init);
+
+  napi_create_function(env, NULL, 0, _purple_core_quit, NULL, &_fn_purple_core_quit);
+  napi_set_named_property(env, ns_core, "quit", _fn_purple_core_quit);
+
+  napi_set_named_property(env, exports, "core", ns_core);
+
+  /* Create debug */
+  napi_value ns_debug;
+  napi_create_object(env, &ns_debug);
+
+  napi_create_function(env, NULL, 0, _purple_debug_set_enabled, NULL, &_fn_purple_debug_set_enabled);
+  napi_set_named_property(env, ns_debug, "set_enabled", _fn_purple_debug_set_enabled);
+
+  napi_set_named_property(env, exports, "debug", ns_debug);
+
 
   return exports;
 }
