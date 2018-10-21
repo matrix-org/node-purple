@@ -1,11 +1,15 @@
 node-purple
 ===========
 
-Basic FFI bindings for libpurple (the backing library behind pidgin and adium).
+**This is an experimental branch to use N-API instead of node-ffi**
 
-Currently makes assumptions that are only valid on mac at the moment.
+Please see ``napi-purple`` for the latest adventures.
 
-see `example.js` for an implementation of `nullclient.c` and a bit of an echo bot.
+### How to use this:
+- `cd napi-purple`
+- Build with `node-gyp rebuild`
+- Start the example with `LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libpurple.so.0 node test.js`
+- Watch it explode and find out why!
 
 MIT LICENSE
 -----------
