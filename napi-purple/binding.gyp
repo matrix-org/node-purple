@@ -3,6 +3,7 @@
         "target_name": "module",
         "sources": [
             "./src/module.c",
+            "./src/helper.c",
             "./src/bindings/b_core.c",
             "./src/bindings/b_debug.c",
         ],
