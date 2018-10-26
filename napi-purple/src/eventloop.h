@@ -3,7 +3,9 @@
 
 #include <eventloop.h>
 #include <glib.h>
+#include <uv.h>
+#include <node_api.h>
 
-void eventLoop_get(PurpleEventLoopUiOps* opts);
+void eventLoop_get(PurpleEventLoopUiOps* opts, napi_env* env);
 
 #endif

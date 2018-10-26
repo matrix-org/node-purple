@@ -14,6 +14,7 @@
            "/usr/lib/purple-2/",
            '/usr/include/glib-2.0',
            '/usr/lib/x86_64-linux-gnu/glib-2.0/include',
+           '/usr/include/uv.h',
            './src/',
            './src/bindings'
         ],

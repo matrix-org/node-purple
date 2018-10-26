@@ -74,7 +74,7 @@ napi_value setupPurple(napi_env env, napi_callback_info info) {
     napi_get_undefined(env, &n_undef);
 
     PurpleEventLoopUiOps eventLoop;
-    eventLoop_get(&eventLoop);
+    eventLoop_get(&eventLoop, &env);
     opts.debugEnabled = 5;
     getSetupPurpleStruct(env, info, &opts);
     if (opts.userDirSet) {
