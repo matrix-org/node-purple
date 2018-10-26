@@ -5,7 +5,7 @@
 #include <prefs.h>
 #include <core.h>
 #include <node_api.h>
-
+#include "helper.h"
 napi_value _purple_core_get_version(napi_env env, napi_callback_info info);
 napi_value _purple_core_init(napi_env env, napi_callback_info info);
 napi_value _purple_core_quit(napi_env env, napi_callback_info info);
