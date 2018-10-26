@@ -3,6 +3,7 @@
 
 #include "bindings/b_core.h"
 #include "bindings/b_debug.h"
+#include "helper.h"
 
 
 napi_value Init(napi_env env, napi_value exports) {
@@ -10,6 +11,7 @@ napi_value Init(napi_env env, napi_value exports) {
   napi_value _fn_purple_core_init;
   napi_value _fn_purple_core_quit;
   napi_value _fn_purple_debug_set_enabled;
+  napi_value _fn_setupPurple;
 
   /* Create core */
   napi_value ns_core;
@@ -35,6 +37,14 @@ napi_value Init(napi_env env, napi_value exports) {
 
   napi_set_named_property(env, exports, "debug", ns_debug);
 
+  /* Create helper */
+  napi_value ns_helper;
+  napi_create_object(env, &ns_helper);
+
+  napi_create_function(env, NULL, 0, setupPurple, NULL, &_fn_setupPurple);
+  napi_set_named_property(env, ns_helper, "setupPurple", _fn_setupPurple);
+
+  napi_set_named_property(env, exports, "helper", ns_helper);
 
   return exports;
 }

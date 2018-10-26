@@ -1,5 +1,5 @@
-#ifndef WILL_DEBUG_H_INCLUDED
-#define WILL_DEBUG_H_INCLUDED
+#ifndef DEBUG_H_INCLUDED
+#define DEBUG_H_INCLUDED
 
 #include <glib.h>
 #include <debug.h>

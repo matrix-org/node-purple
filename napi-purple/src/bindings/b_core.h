@@ -1,5 +1,5 @@
-#ifndef WILL_CORE_H_INCLUDED
-#define WILL_CORE_H_INCLUDED
+#ifndef CORE_H_INCLUDED
+#define CORE_H_INCLUDED
 
 #include <glib.h>
 #include <prefs.h>
