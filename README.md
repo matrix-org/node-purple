@@ -5,6 +5,11 @@ node-purple
 
 Please see ``napi-purple`` for the latest adventures.
 
+### Deps:
+- pkg-config
+- libpurple-dev
+
+
 ### How to use this:
 - `cd napi-purple`
 - Build with `node-gyp rebuild`
