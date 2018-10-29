@@ -50,6 +50,12 @@ guint timeout_add (guint interval, GSourceFunc function, gpointer data) {
     uv_timer_t *handle = malloc(sizeof(uv_timer_t));
     s_evLoopTimer *timer = malloc(sizeof(s_evLoopTimer));
     uv_timer_init(evLoopState.loop, handle);
+    while (evLoopState.timers[evLoopState.timerSlot].handle != NULL) {
+        evLoopState.timerSlot++;
+        if(evLoopState.timerSlot == TIMER_CAPACITY) {
+            evLoopState.timerSlot = 0;
+        }
+    }
     uint32_t slot = evLoopState.timerSlot;
     timer->handle = handle;
     timer->function = function;
@@ -57,10 +63,6 @@ guint timeout_add (guint interval, GSourceFunc function, gpointer data) {
     timer->data = data;
     handle->data = timer;
     evLoopState.timers[slot] = *timer;
-    evLoopState.timerSlot++;
-    if(evLoopState.timerSlot == TIMER_CAPACITY) {
-        evLoopState.timerSlot = 0;
-    }
     // Crashes here after enough iterations
     int v = uv_timer_start(handle, call_callback, interval, 0);
     printf("timeout_add: added timer #%d out:%d\n", evLoopState.timerSlot, v);
