@@ -94,7 +94,14 @@ guint timeout_add_seconds(guint interval, GSourceFunc function, gpointer data) {
 * @see purple_timeout_remove
 */
 gboolean timeout_remove(guint handle) {
-    printf("timeout_remove\n");
+    printf("timeout_remove #%d\n", handle);
+    s_evLoopTimer *timer = &evLoopState.timers[handle];
+    if (timer->handle == NULL) {
+        return false;
+    }
+    uv_timer_stop(evLoopState.timers[handle].handle);
+    free(timer->handle);
+    return true;
 }
 
 /**
@@ -156,14 +163,18 @@ void call_callback(uv_timer_t* handle) {
     s_evLoopTimer *timer = handle->data;
     printf("call_callback called timer # %d\n", timer->timerSlot);
     purple_eventloop_set_ui_ops(&glib_eventloops);
+    if (timer->handle == NULL) {
+        printf("timer # %d callback was fired but timer has been cleaned up.\n", timer->timerSlot);
+        return;
+    }
     gboolean res = timer->function(timer->data);
     if (!res) {
-        printf("Stopped timer #%d", timer->timerSlot);
+        printf("Stopped timer #%d\n", timer->timerSlot);
         free(handle->data);
         free(handle);
         return;
     }
-    printf("Continuing with timer #%d", timer->timerSlot);
+    printf("Continuing with timer #%d\n", timer->timerSlot);
     uv_timer_again(handle);
 }
 
