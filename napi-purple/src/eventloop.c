@@ -13,25 +13,14 @@ typedef struct {
 } s_evLoopTimer;
 
 typedef struct {
-    uint stateN;
     uv_loop_t* loop;
     s_evLoopTimer timers[TIMER_CAPACITY];
     uint32_t timerSlot;
-    uv_mutex_t* timerAddMutex;
 } s_evLoopState;
 
-static s_evLoopState evLoopState;
+void call_callback(uv_timer_t* handle);
 
-void call_callback(uv_timer_t* handle) {
-    s_evLoopTimer *timer = handle->data;
-    printf("call_callback called timer # %d\n", timer->timerSlot);
-    if (!timer->function(timer->data)) {
-        printf("Stopped timer #%d", timer->timerSlot);
-        uv_timer_stop(timer->handle);
-        return;
-    }
-    printf("Continuing with timer #%d", timer->timerSlot);
-}
+static s_evLoopState evLoopState;
 
 /**
 * Should create a callback timer with an interval measured in
@@ -57,28 +46,44 @@ void call_callback(uv_timer_t* handle) {
 * @see purple_timeout_add
 **/
 guint timeout_add (guint interval, GSourceFunc function, gpointer data) {
-    uv_mutex_lock(&evLoopState.timerAddMutex);
     printf("timeout_add: interval %d\n", interval);
-    uv_timer_t handle;
-    uv_timer_init(evLoopState.loop, &handle);
+    uv_timer_t *handle = malloc(sizeof(uv_timer_t));
+    s_evLoopTimer *timer = malloc(sizeof(s_evLoopTimer));
+    uv_timer_init(evLoopState.loop, handle);
     uint32_t slot = evLoopState.timerSlot;
-    s_evLoopTimer timer = {
-        &handle,
-        function,
-        data
-    };
-    handle.data = &timer;
-    evLoopState.timers[slot] = timer;
+    timer->handle = handle;
+    timer->function = function;
+    timer->timerSlot = slot;
+    timer->data = data;
+    handle->data = timer;
+    evLoopState.timers[slot] = *timer;
     evLoopState.timerSlot++;
-    if(evLoopState.timerSlot > TIMER_CAPACITY - 1) {
+    if(evLoopState.timerSlot == TIMER_CAPACITY) {
         evLoopState.timerSlot = 0;
     }
-    int v = uv_timer_start(&handle, call_callback, interval, interval);
+    // Crashes here after enough iterations
+    int v = uv_timer_start(handle, call_callback, interval, 0);
     printf("timeout_add: added timer #%d out:%d\n", evLoopState.timerSlot, v);
-    uv_mutex_unlock(&evLoopState.timerAddMutex);
     return slot;
 }
 
+/**
+    * If implemented, should create a callback timer with an interval
+    * measured in seconds.  Analogous to g_timeout_add_seconds in glib.
+    *
+    * This allows UIs to group timers for better power efficiency.  For
+    * this reason, @a interval may be rounded by up to a second.
+    *
+    * Implementation of this UI op is optional.  If it's not implemented,
+    * calls to purple_timeout_add_seconds() will be serviced by
+    * #timeout_add.
+    *
+    * @see purple_timeout_add_seconds()
+    * @since 2.1.0
+    **/
+guint timeout_add_seconds(guint interval, GSourceFunc function, gpointer data) {
+    return timeout_add(interval*1000, function, data);
+}
 
 /**
 * Should remove a callback timer.  Analogous to g_source_remove in glib.
@@ -89,7 +94,7 @@ guint timeout_add (guint interval, GSourceFunc function, gpointer data) {
 * @see purple_timeout_remove
 */
 gboolean timeout_remove(guint handle) {
-    printf("Magic number; %d\n", evLoopState.stateN);
+    printf("timeout_remove\n");
 }
 
 /**
@@ -109,7 +114,7 @@ gboolean timeout_remove(guint handle) {
 */
 guint input_add(int fd, PurpleInputCondition cond,
                 PurpleInputFunction func, gpointer user_data) {
-    printf("Magic number; %d\n", evLoopState.stateN);
+    printf("input_add()\n");
 }
 
 /**
@@ -119,7 +124,7 @@ guint input_add(int fd, PurpleInputCondition cond,
 * @see purple_input_remove
 */
 gboolean input_remove (guint handle) {
-    printf("Magic number; %d\n", evLoopState.stateN);
+    printf("input_remove()\n");
 }
 
 
@@ -130,7 +135,7 @@ static PurpleEventLoopUiOps glib_eventloops =
     input_add,
     input_remove,
     NULL,//input_get_error
-    NULL,//timeout_add_seconds
+    timeout_add_seconds,//timeout_add_seconds
     NULL,
     NULL,
     NULL,
@@ -140,14 +145,27 @@ static PurpleEventLoopUiOps glib_eventloops =
 void eventLoop_get(PurpleEventLoopUiOps* opts, napi_env* env) {
     *opts = glib_eventloops;
     uv_loop_t* loop;
-    evLoopState.stateN = 52;
-    uv_mutex_init(&evLoopState.timerAddMutex);
-    if (napi_get_uv_event_loop(*env, &loop) != napi_ok){
+    if (evLoopState.loop == NULL && napi_get_uv_event_loop(*env, &loop) != napi_ok){
         napi_throw_error(*env, NULL, "Could not get UV loop");
     }
     evLoopState.loop = loop;
 }
 
+
+void call_callback(uv_timer_t* handle) {
+    s_evLoopTimer *timer = handle->data;
+    printf("call_callback called timer # %d\n", timer->timerSlot);
+    purple_eventloop_set_ui_ops(&glib_eventloops);
+    gboolean res = timer->function(timer->data);
+    if (!res) {
+        printf("Stopped timer #%d", timer->timerSlot);
+        free(handle->data);
+        free(handle);
+        return;
+    }
+    printf("Continuing with timer #%d", timer->timerSlot);
+    uv_timer_again(handle);
+}
 
 /**
     * If implemented, should get the current error status for an input.
@@ -163,21 +181,3 @@ void eventLoop_get(PurpleEventLoopUiOps* opts, napi_env* env) {
 
 // }
 
-/**
-    * If implemented, should create a callback timer with an interval
-    * measured in seconds.  Analogous to g_timeout_add_seconds in glib.
-    *
-    * This allows UIs to group timers for better power efficiency.  For
-    * this reason, @a interval may be rounded by up to a second.
-    *
-    * Implementation of this UI op is optional.  If it's not implemented,
-    * calls to purple_timeout_add_seconds() will be serviced by
-    * #timeout_add.
-    *
-    * @see purple_timeout_add_seconds()
-    * @since 2.1.0
-    **/
-//guint timeout_add_seconds (guint interval, GSourceFunc function,
-//	                             gpointer data) {
-
-//}
