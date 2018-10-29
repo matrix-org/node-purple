@@ -15,7 +15,6 @@ void getSetupPurpleStruct(napi_env env, napi_callback_info info, s_setupPurple *
     s_setupPurple stemp;
     napi_valuetype type;
     napi_value value;
-    napi_ref ref;
     stemp.userDirSet = false;
 
     napi_get_cb_info(env, info, &argc, &opts, NULL, NULL);
@@ -75,7 +74,6 @@ napi_value setupPurple(napi_env env, napi_callback_info info) {
 
     PurpleEventLoopUiOps eventLoop;
     eventLoop_get(&eventLoop, &env);
-    opts.debugEnabled = 5;
     getSetupPurpleStruct(env, info, &opts);
     if (opts.userDirSet) {
   	  purple_util_set_user_dir(opts.userDir);
@@ -92,6 +90,7 @@ napi_value setupPurple(napi_env env, napi_callback_info info) {
     printf("purple_core_init()\n");
     purple_core_init("matrix-bridge");
     g_main_loop_run(loop);
+    return n_undef;
 }
 
 /* N-API helpers */

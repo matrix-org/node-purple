@@ -3,32 +3,34 @@
  Horrible stiching together of libuv's loop for purple.
 ***/
 
+#define TIMER_CAPACITY 5000
+
 typedef struct {
     uv_timer_t* handle;
     GSourceFunc function;
     gpointer data;
+    uint32_t timerSlot;
 } s_evLoopTimer;
 
 typedef struct {
     uint stateN;
     uv_loop_t* loop;
-    s_evLoopTimer timers[100];
-    uint timerSlot;
+    s_evLoopTimer timers[TIMER_CAPACITY];
+    uint32_t timerSlot;
+    uv_mutex_t* timerAddMutex;
 } s_evLoopState;
 
 static s_evLoopState evLoopState;
 
 void call_callback(uv_timer_t* handle) {
-    printf("call_callback called %d\n", handle);
-    s_evLoopTimer timer;
-    for (uint i = 0; i < 100; i++) {
-        if(evLoopState.timers[i].handle == handle) {
-            timer = evLoopState.timers[i];
-        }
+    s_evLoopTimer *timer = handle->data;
+    printf("call_callback called timer # %d\n", timer->timerSlot);
+    if (!timer->function(timer->data)) {
+        printf("Stopped timer #%d", timer->timerSlot);
+        uv_timer_stop(timer->handle);
+        return;
     }
-    if (!timer.function(timer.data)) {
-        uv_timer_stop(timer.handle);
-    }
+    printf("Continuing with timer #%d", timer->timerSlot);
 }
 
 /**
@@ -54,23 +56,27 @@ void call_callback(uv_timer_t* handle) {
 *
 * @see purple_timeout_add
 **/
-uv_timer_t timeout_add (guint interval, GSourceFunc function, gpointer data) {
+guint timeout_add (guint interval, GSourceFunc function, gpointer data) {
+    uv_mutex_lock(&evLoopState.timerAddMutex);
     printf("timeout_add: interval %d\n", interval);
     uv_timer_t handle;
     uv_timer_init(evLoopState.loop, &handle);
+    uint32_t slot = evLoopState.timerSlot;
     s_evLoopTimer timer = {
         &handle,
         function,
         data
     };
-    evLoopState.timers[evLoopState.timerSlot] = timer;
+    handle.data = &timer;
+    evLoopState.timers[slot] = timer;
     evLoopState.timerSlot++;
-    if(evLoopState.timerSlot > 99) {
+    if(evLoopState.timerSlot > TIMER_CAPACITY - 1) {
         evLoopState.timerSlot = 0;
     }
     int v = uv_timer_start(&handle, call_callback, interval, interval);
-    printf("timeout_add: added handle %d %d\n", handle, v);
-    return handle;
+    printf("timeout_add: added timer #%d out:%d\n", evLoopState.timerSlot, v);
+    uv_mutex_unlock(&evLoopState.timerAddMutex);
+    return slot;
 }
 
 
@@ -135,6 +141,7 @@ void eventLoop_get(PurpleEventLoopUiOps* opts, napi_env* env) {
     *opts = glib_eventloops;
     uv_loop_t* loop;
     evLoopState.stateN = 52;
+    uv_mutex_init(&evLoopState.timerAddMutex);
     if (napi_get_uv_event_loop(*env, &loop) != napi_ok){
         napi_throw_error(*env, NULL, "Could not get UV loop");
     }
