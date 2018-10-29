@@ -4,11 +4,12 @@ console.log(`Libpurple core version:`, libpurple.core.get_version());
 console.log(libpurple);
 
 setInterval(() => {
-    console.log("I'm doing stuff!");
-}, 100);
+    console.log("node-purple idle output");
+}, 4000);
 
 libpurple.helper.setupPurple(
     {
         debugEnabled: 1
     }
 );
+console.log("Finished setting up purple!");
