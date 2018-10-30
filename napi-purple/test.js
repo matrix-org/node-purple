@@ -1,5 +1,4 @@
-const libpurple = require('./build/Release/module');
-libpurple.debug.set_enabled(1);
+const libpurple = require('./build/Debug/module');
 console.log(`Libpurple core version:`, libpurple.core.get_version());
 console.log(libpurple);
 
@@ -13,3 +12,4 @@ libpurple.helper.setupPurple(
     }
 );
 console.log("Finished setting up purple!");
+console.log("Plugin list:", libpurple.plugins.get_protocols());

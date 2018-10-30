@@ -15,7 +15,6 @@ void getSetupPurpleStruct(napi_env env, napi_callback_info info, s_setupPurple *
     s_setupPurple stemp;
     napi_valuetype type;
     napi_value value;
-    napi_ref ref;
     stemp.userDirSet = false;
 
     napi_get_cb_info(env, info, &argc, &opts, NULL, NULL);

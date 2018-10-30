@@ -4,6 +4,8 @@
 ***/
 
 #define TIMER_CAPACITY 5000
+#define INPUT_CAPACITY 5000
+#define INPUT_OPERATION_CAPACITY 500
 
 typedef struct {
     uv_timer_t* handle;
@@ -13,9 +15,20 @@ typedef struct {
 } s_evLoopTimer;
 
 typedef struct {
+    uv_poll_t* handle;
+    int inputSlot;
+    int fd;
+    int operations;
+    PurpleInputFunction func;
+    gpointer user_data;
+} s_evLoopInput;
+
+typedef struct {
     uv_loop_t* loop;
     s_evLoopTimer timers[TIMER_CAPACITY];
+    s_evLoopInput *inputs[TIMER_CAPACITY];
     uint32_t timerSlot;
+    uint32_t inputSlot;
 } s_evLoopState;
 
 void call_callback(uv_timer_t* handle);
@@ -106,6 +119,12 @@ gboolean timeout_remove(guint handle) {
     return true;
 }
 
+void handle_input(uv_poll_t* handle, int status, int events) {
+    printf("handing input for fd:%d, status: %d, events: %d", 0, status, events);
+
+}
+
+
 /**
 * Should add an input handler.  Analogous to g_io_add_watch_full in
 * glib.
@@ -123,7 +142,46 @@ gboolean timeout_remove(guint handle) {
 */
 guint input_add(int fd, PurpleInputCondition cond,
                 PurpleInputFunction func, gpointer user_data) {
-    printf("input_add()\n");
+    printf("input_add fd: %d\n", fd);
+
+    uv_poll_t *poll_handle = NULL;
+
+    // Iterate over existing poll handles to see if one exists.
+    uint32_t i = 0;
+    while(i < evLoopState.inputSlot) {
+        s_evLoopInput *h = &evLoopState.inputs[i];
+        if (h != NULL && h->fd == fd) {
+            poll_handle = h->handle;
+        }
+    }
+
+    if (poll_handle == NULL) {
+        // We don't have an input handler for that FD yet.
+        poll_handle = malloc(sizeof(uv_poll_t));
+        uv_poll_init(evLoopState.loop, poll_handle, fd);
+    }
+
+    // Create the input handle.
+    s_evLoopInput *input_handle;
+    input_handle = malloc(sizeof(s_evLoopInput));
+    input_handle->fd = fd;
+    input_handle->handle = poll_handle;
+    input_handle->operations = cond;
+
+    // Insert the handler.
+    i = evLoopState.inputSlot;
+    input_handle->inputSlot = i;
+    evLoopState.inputs[i] = input_handle;
+    evLoopState.inputSlot++;
+
+    // Add a reader/writer
+    input_handle->func = func;
+    input_handle->user_data = user_data;
+
+
+    // enum has 1=readable, 2=writable, which coincidentally matches libpurple's PurpleInputCondition...
+    uv_poll_start(poll_handle, (int)cond, handle_input);
+    return i;
 }
 
 /**
@@ -133,7 +191,7 @@ guint input_add(int fd, PurpleInputCondition cond,
 * @see purple_input_remove
 */
 gboolean input_remove (guint handle) {
-    printf("input_remove()\n");
+    printf("input_remove handle:%d\n", handle);
 }
 
 
@@ -179,7 +237,6 @@ void call_callback(uv_timer_t* handle) {
     printf("Continuing with timer #%d\n", timer->timerSlot);
     uv_timer_again(handle);
 }
-
 /**
     * If implemented, should get the current error status for an input.
     *

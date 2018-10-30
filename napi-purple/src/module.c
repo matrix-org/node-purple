@@ -3,7 +3,7 @@
 #include <glib.h>
 
 #include "bindings/b_core.h"
-#include "bindings/b_debug.h"
+#include "bindings/b_plugins.h"
 #include "helper.h"
 
 
@@ -11,8 +11,8 @@ napi_value Init(napi_env env, napi_value exports) {
   napi_value _fn_purple_core_get_version;
   napi_value _fn_purple_core_init;
   napi_value _fn_purple_core_quit;
-  napi_value _fn_purple_debug_set_enabled;
   napi_value _fn_setupPurple;
+  napi_value _func;
 
   /* Create core */
   napi_value ns_core;
@@ -33,9 +33,6 @@ napi_value Init(napi_env env, napi_value exports) {
   napi_value ns_debug;
   napi_create_object(env, &ns_debug);
 
-  napi_create_function(env, NULL, 0, _purple_debug_set_enabled, NULL, &_fn_purple_debug_set_enabled);
-  napi_set_named_property(env, ns_debug, "set_enabled", _fn_purple_debug_set_enabled);
-
   napi_set_named_property(env, exports, "debug", ns_debug);
 
   /* Create helper */
@@ -46,6 +43,15 @@ napi_value Init(napi_env env, napi_value exports) {
   napi_set_named_property(env, ns_helper, "setupPurple", _fn_setupPurple);
 
   napi_set_named_property(env, exports, "helper", ns_helper);
+
+  /* Create plugins */
+  napi_value ns_plugins;
+  napi_create_object(env, &ns_plugins);
+
+  napi_create_function(env, NULL, 0, _purple_plugins_get_protocols, NULL, &_func);
+  napi_set_named_property(env, ns_plugins, "get_protocols", _func);
+
+  napi_set_named_property(env, exports, "plugins", ns_plugins);
 
   return exports;
 }
