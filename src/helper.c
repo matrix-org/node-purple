@@ -4,6 +4,7 @@ bool getValueFromObject(napi_env env, napi_value object, char* propStr, napi_val
 
 typedef struct {
   int32_t debugEnabled;
+  napi_value eventFunc;
   char userDir[512];
   bool userDirSet;
 } s_setupPurple;
@@ -33,12 +34,92 @@ void getSetupPurpleStruct(napi_env env, napi_callback_info info, s_setupPurple *
       printf("status: %d\ndir: %s\n", status, stemp.userDir);
       stemp.userDirSet = true;
     }
+    if (napi_ok != napi_get_named_property(env, opts, "eventFunc", &stemp.eventFunc)) {
+        napi_throw_error(env, NULL, "setupPurple expects eventFunc to be defined");
+    }
     *o = stemp;
 }
 
-// void handleUiInit() {
-//   printf("called handleUiInit");
-// }
+napi_value pollEvents(napi_env env, napi_callback_info info) {
+    napi_value eventArray;
+    napi_value evtObj;
+    napi_create_array(env, &eventArray);
+    int i = 0;
+    s_signalEventData *evtData;
+
+    GSList* eventQueue = signalling_pop();
+
+    while(eventQueue != NULL) {
+        evtData = (s_signalEventData*)eventQueue->data;
+        evtObj = getJsObjectForSignalEvent(env, evtData);
+        napi_set_element(env, eventArray, i, evtObj);
+        if (evtData->freeMe) {
+            free(evtData->data);
+        }
+        free(eventQueue->data);
+        eventQueue = signalling_pop();
+        i++;
+    }
+    return eventArray;
+}
+
+void handlePurpleSignalCb(gpointer signalData, gpointer data) {
+    s_signalCbData cbData = *(s_signalCbData*)data;
+    s_signalEventData *ev = malloc(sizeof(s_signalEventData));
+    ev->signal = cbData.signal;
+    ev->data = signalData;
+    signalling_push(ev);
+}
+
+void wirePurpleSignalsIntoNode(napi_env env, napi_value eventFunc) {
+    static int handle;
+    s_signalCbData *cbData;
+    void *conn_handle = purple_connections_get_handle();
+    void *conv_handle = purple_conversations_get_handle();
+    void *accounts_handle = purple_accounts_get_handle();
+
+    cbData = malloc(sizeof(s_signalCbData));
+    cbData->signal = "signing-on";
+    purple_signal_connect(conn_handle, "signing-on", &handle,
+                PURPLE_CALLBACK(handlePurpleSignalCb), cbData);
+
+    cbData = malloc(sizeof(s_signalCbData));
+    cbData->signal = "account-signed-on";
+    purple_signal_connect(accounts_handle, "account-signed-on", &handle,
+                PURPLE_CALLBACK(handlePurpleSignalCb), cbData);
+
+    cbData = malloc(sizeof(s_signalCbData));
+    cbData->signal = "account-signed-off";
+    purple_signal_connect(accounts_handle, "account-signed-off", &handle,
+                PURPLE_CALLBACK(handlePurpleSignalCb), cbData);
+
+    cbData = malloc(sizeof(s_signalCbData));
+    cbData->signal = "account-disabled";
+
+    purple_signal_connect(accounts_handle, "account-disabled", &handle,
+                PURPLE_CALLBACK(handlePurpleSignalCb), cbData);
+
+    cbData = malloc(sizeof(s_signalCbData));
+    cbData->signal = "account-enabled";
+
+    purple_signal_connect_vargs(accounts_handle, "account-enabled", &handle,
+                PURPLE_CALLBACK(handlePurpleSignalCb), cbData);
+
+    cbData = malloc(sizeof(s_signalCbData));
+    cbData->signal = "account-connecting";
+    purple_signal_connect(accounts_handle, "account-connecting", &handle,
+                PURPLE_CALLBACK(handlePurpleSignalCb), cbData);
+
+    cbData = malloc(sizeof(s_signalCbData));
+    cbData->signal = "account-connection-error";
+    purple_signal_connect(accounts_handle, "account-connection-error", &handle,
+                PURPLE_CALLBACK(handlePurpleSignalCb), cbData);
+
+    cbData = malloc(sizeof(s_signalCbData));
+    cbData->signal = "received-im-msg";
+    purple_signal_connect(conv_handle, "received-im-msg", &handle,
+                PURPLE_CALLBACK(handleReceivedIMMessage), NULL);
+}
 
 //Does everything needed to create a purple session.
 //{
@@ -76,7 +157,7 @@ napi_value setupPurple(napi_env env, napi_callback_info info) {
 
     getSetupPurpleStruct(env, info, &opts);
     if (opts.userDirSet) {
-  	  purple_util_set_user_dir(opts.userDir);
+      purple_util_set_user_dir(opts.userDir);
     }
 
 
@@ -87,10 +168,15 @@ napi_value setupPurple(napi_env env, napi_callback_info info) {
     purple_conversation_set_ui_ops(&uiopts, NULL);
     printf("purple_prefs_load()\n");
     purple_prefs_load();
-    printf("purple_accounts_init()\n");
-    purple_accounts_init();
+    printf("purple_set_blist()\n");
+    purple_set_blist(purple_blist_new());
+    printf("purple_blist_load()\n");
+    purple_blist_load();
     printf("purple_core_init()\n");
-    purple_core_init("matrix-bridge");
+    purple_core_init(STR_PURPLE_UI);
+    // To restore all the accounts.
+    purple_accounts_restore_current_statuses();
+    wirePurpleSignalsIntoNode(env, opts.eventFunc);
     return n_undef;
 }
 

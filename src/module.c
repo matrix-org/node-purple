@@ -1,4 +1,5 @@
 #define NAPI_VERSION 3
+#define NAPI_EXPERIMENTAL
 #include <node_api.h>
 #include <glib.h>
 
@@ -40,8 +41,11 @@ napi_value Init(napi_env env, napi_value exports) {
   napi_value ns_helper;
   napi_create_object(env, &ns_helper);
 
-  napi_create_function(env, NULL, 0, setupPurple, NULL, &_fn_setupPurple);
-  napi_set_named_property(env, ns_helper, "setupPurple", _fn_setupPurple);
+  napi_create_function(env, NULL, 0, setupPurple, NULL, &_func);
+  napi_set_named_property(env, ns_helper, "setupPurple", _func);
+
+  napi_create_function(env, NULL, 0, pollEvents, NULL, &_func);
+  napi_set_named_property(env, ns_helper, "pollEvents", _func);
 
   napi_set_named_property(env, exports, "helper", ns_helper);
 
@@ -60,6 +64,15 @@ napi_value Init(napi_env env, napi_value exports) {
 
   napi_create_function(env, NULL, 0, _purple_accounts_new, NULL, &_func);
   napi_set_named_property(env, ns_accounts, "new", _func);
+
+  napi_create_function(env, NULL, 0, _purple_accounts_find, NULL, &_func);
+  napi_set_named_property(env, ns_accounts, "find", _func);
+
+  napi_create_function(env, NULL, 0, _purple_accounts_get_enabled, NULL, &_func);
+  napi_set_named_property(env, ns_accounts, "get_enabled", _func);
+
+  napi_create_function(env, NULL, 0, _purple_accounts_set_enabled, NULL, &_func);
+  napi_set_named_property(env, ns_accounts, "set_enabled", _func);
 
   napi_set_named_property(env, exports, "accounts", ns_accounts);
 
