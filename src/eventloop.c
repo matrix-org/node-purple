@@ -83,7 +83,6 @@ gint findInputByFd(gconstpointer item, gconstpointer fd) {
 * @see purple_timeout_add
 **/
 guint timeout_add (guint interval, GSourceFunc function, gpointer data) {
-    printf("timeout_add: interval %d\n", interval);
     uv_timer_t *handle = malloc(sizeof(uv_timer_t));
     s_evLoopTimer *timer = malloc(sizeof(s_evLoopTimer));
     uint32_t id = evLoopState.timerId;
@@ -96,7 +95,6 @@ guint timeout_add (guint interval, GSourceFunc function, gpointer data) {
     evLoopState.timers = g_list_append(evLoopState.timers, timer);
     uv_timer_start(handle, call_callback, interval, 0);
     evLoopState.timerId++;
-    printf("timeout_add: added timer #%d\n", id);
     return id;
 }
 
@@ -127,7 +125,6 @@ guint timeout_add_seconds(guint interval, GSourceFunc function, gpointer data) {
 * @see purple_timeout_remove
 */
 gboolean timeout_remove(guint handle) {
-    printf("timeout_remove #%d\n", handle);
     GList* timerListItem = g_list_find_custom(evLoopState.timers, &handle, findTimerById);
     if (timerListItem == NULL) {
         return false;
@@ -151,7 +148,6 @@ void handle_input(uv_poll_t* handle, int status, int events) {
         if (input->handle != handle) {
             continue;
         }
-        printf("handing input for fd:%d, status: %d, events: %d\n", input->fd, status, events);
         if (input->operations & 1 && events & 1) {
             // Read
             input->func(input->user_data, input->fd, events);
@@ -181,7 +177,6 @@ void handle_input(uv_poll_t* handle, int status, int events) {
 */
 guint input_add(int fd, PurpleInputCondition cond,
                 PurpleInputFunction func, gpointer user_data) {
-    printf("input_add fd: %d\n", fd);
 
     uv_poll_t *poll_handle;
     uint32_t *pollsOpen;
@@ -228,7 +223,6 @@ guint input_add(int fd, PurpleInputCondition cond,
 * @see purple_input_remove
 */
 gboolean input_remove (guint handle) {
-    printf("input_remove handle:%d\n", handle);
     GList* timerListItem = g_list_find_custom(evLoopState.inputs, &handle, findInputById);
     if (timerListItem == NULL) {
         // We don't have an input handler for that FD.
@@ -274,20 +268,16 @@ PurpleEventLoopUiOps* eventLoop_get(napi_env* env) {
 
 void call_callback(uv_timer_t* handle) {
     s_evLoopTimer *timer = handle->data;
-    printf("call_callback called timer # %d\n", timer->id);
     purple_eventloop_set_ui_ops(&glib_eventloops);
     if (timer->handle == NULL) {
-        printf("timer # %d callback was fired but timer has been cleaned up.\n", timer->id);
         return;
     }
     gboolean res = timer->function(timer->data);
     if (!res) {
-        printf("Stopped timer #%d\n", timer->id);
         free(handle->data);
         free(handle);
         return;
     }
-    printf("Continuing with timer #%d\n", timer->id);
     uv_timer_again(handle);
 }
 /**
