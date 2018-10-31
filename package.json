@@ -1,32 +1,19 @@
 {
-  "name": "purple",
-  "version": "0.0.1",
-  "author": "Timothy J Fontaine <tjfontaine@gmail.com> (http://atxconsulting.com)",
-  "description": "libpurple FFI Bindings",
-  "keywords": [
-    "libpurple",
-    "purple",
-    "pidgin",
-    "adium",
-    "meebo"
-  ],
-  "homepage": "http://github.com/tjfontaine/node-purple",
-  "bugs": {
-    "url": "http://github.com/tjfontaine/node-purple/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "http://github.com/tjfontaine/node-purple.git"
-  },
-  "main": "purple.js",
-  "engines": {
-    "node": ">= 0.8.0"
-  },
+  "name": "node-purple",
+  "version": "0.0.2",
+  "description": "N-API bindings for libpurple",
+  "main": "main.js",
+  "author": "Half-Shot <will@half-shot.uk>",
+  "license": "Apache-2.0",
   "dependencies": {
-    "ffi": ">= 1.0.7",
-    "ref": ">= 0.0.17",
-    "ref-struct": ">= 0.0.3",
-    "ref-union": ">= 0.0.2",
-    "semver": ">= 1.0.14"
+    "node-pre-gyp": "0.11.x"
+  },
+  "scripts": {
+    "install": "node-pre-gyp install --fallback-to-build"
+  },
+  "binary": {
+    "module_name": "module",
+    "module_path": "./lib/binding/",
+    "host": "https://your_module.s3-us-west-1.amazonaws.com"
   }
 }
