@@ -6,6 +6,7 @@
             "./src/helper.c",
             "./src/eventloop.c",
             "./src/signalling.c",
+            "./src/messaging.c",
             "./src/bindings/b_core.c",
             "./src/bindings/b_plugins.c",
             "./src/bindings/b_accounts.c",

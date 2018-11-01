@@ -7,13 +7,13 @@
 #include "bindings/b_plugins.h"
 #include "bindings/b_accounts.h"
 #include "helper.h"
+#include "messaging.h"
 
 
 napi_value Init(napi_env env, napi_value exports) {
   napi_value _fn_purple_core_get_version;
   napi_value _fn_purple_core_init;
   napi_value _fn_purple_core_quit;
-  napi_value _fn_setupPurple;
   napi_value _func;
 
   /* Create core */
@@ -76,6 +76,14 @@ napi_value Init(napi_env env, napi_value exports) {
 
   napi_set_named_property(env, exports, "accounts", ns_accounts);
 
+  /* Create messaging */
+  napi_value ns_messaging;
+  napi_create_object(env, &ns_messaging);
+
+  napi_create_function(env, NULL, 0, messaging_sendIM, NULL, &_func);
+  napi_set_named_property(env, ns_messaging, "sendIM", _func);
+
+  napi_set_named_property(env, exports, "messaging", ns_messaging);
   return exports;
 }
 
