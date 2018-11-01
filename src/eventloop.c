@@ -135,13 +135,16 @@ gboolean timeout_remove(guint handle) {
     }
     uv_timer_stop(timer->handle);
     evLoopState.timers = g_list_remove(evLoopState.timers, timer);
-    free(timer->handle);
+    printf("free(timer)");
     free(timer);
     return true;
 }
 
 void handle_input(uv_poll_t* handle, int status, int events) {
     GList *l;
+    if (status != 0) {
+        printf("handle_input reported a not ok status: %s", uv_err_name(status));
+    }
     for (l = evLoopState.inputs; l != NULL; l = l->next)
     {
         s_evLoopInput *input = (s_evLoopInput*)l->data;
@@ -231,13 +234,17 @@ gboolean input_remove (guint handle) {
     s_evLoopInput *input = (s_evLoopInput*)timerListItem->data;
     (*input->openPollCounter)--;
     evLoopState.inputs = g_list_remove(evLoopState.inputs, input);
+    printf("Removing a input for %d", input->fd);
     if (*input->openPollCounter > 0) {
+        printf("free(input);");
         free(input);
         return true;
     }
     uv_poll_stop(input->handle);
-    free(input->handle);
-    free(input);
+    // XXX: This might be the wrong thing to do here, so commented out.
+    //      Hopefully a libuv/c veteran could clear this up, pun not intended :p.
+    //free(input->handle);
+    //free(input);
     return true;
 }
 
@@ -274,8 +281,8 @@ void call_callback(uv_timer_t* handle) {
     }
     gboolean res = timer->function(timer->data);
     if (!res) {
+        printf("free(handle->data);");
         free(handle->data);
-        free(handle);
         return;
     }
     uv_timer_again(handle);
