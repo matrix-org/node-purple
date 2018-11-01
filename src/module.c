@@ -74,6 +74,17 @@ napi_value Init(napi_env env, napi_value exports) {
   napi_create_function(env, NULL, 0, _purple_accounts_set_enabled, NULL, &_func);
   napi_set_named_property(env, ns_accounts, "set_enabled", _func);
 
+  napi_create_function(env, NULL, 0, _purple_accounts_connect, NULL, &_func);
+  napi_set_named_property(env, ns_accounts, "connect", _func);
+  napi_create_function(env, NULL, 0, _purple_accounts_disconnect, NULL, &_func);
+  napi_set_named_property(env, ns_accounts, "disconnect", _func);
+  napi_create_function(env, NULL, 0, _purple_account_is_connected, NULL, &_func);
+  napi_set_named_property(env, ns_accounts, "is_connected", _func);
+  napi_create_function(env, NULL, 0, _purple_account_is_connecting, NULL, &_func);
+  napi_set_named_property(env, ns_accounts, "is_connecting", _func);
+  napi_create_function(env, NULL, 0, _purple_account_is_disconnected, NULL, &_func);
+  napi_set_named_property(env, ns_accounts, "is_disconnected", _func);
+
   napi_set_named_property(env, exports, "accounts", ns_accounts);
 
   /* Create messaging */

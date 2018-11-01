@@ -39,6 +39,19 @@ napi_value nprpl_account_create(napi_env env, PurpleAccount *acct){
     return obj;
 }
 
+
+PurpleAccount* __getacct(napi_env env, napi_callback_info info) {
+    PurpleAccount *account;
+    size_t argc = 1;
+    napi_value opt;
+    napi_get_cb_info(env, info, &argc, &opt, NULL, NULL);
+    if (argc < 1) {
+      napi_throw_error(env, NULL, "takes one argument");
+    }
+    napi_get_value_external(env, opt, &account);
+    return account;
+}
+
 napi_value _purple_accounts_new(napi_env env, napi_callback_info info) {
     napi_value n_out;
     size_t argc = 2;
@@ -63,6 +76,8 @@ napi_value _purple_accounts_new(napi_env env, napi_callback_info info) {
 
     PurpleAccount *account = purple_account_new(name, prpl);
     n_out = nprpl_account_create(env, account);
+
+    printf("free(name, prpl)");
     free(name);
     free(prpl);
 
@@ -98,6 +113,7 @@ napi_value _purple_accounts_find(napi_env env, napi_callback_info info) {
     } else {
         n_out = nprpl_account_create(env, account);
     }
+    printf("free(name, prpl)");
     free(name);
     free(prpl);
 
@@ -135,4 +151,34 @@ napi_value _purple_accounts_set_enabled(napi_env env, napi_callback_info info) {
     napi_get_value_bool(env, opts[1], &enable);
     purple_account_set_enabled(account, STR_PURPLE_UI, enable);
     return n_out;
+}
+
+void _purple_accounts_connect(napi_env env, napi_callback_info info) {
+    PurpleAccount *account = __getacct(env, info);
+    purple_account_connect(account);
+}
+void _purple_accounts_disconnect(napi_env env, napi_callback_info info) {
+    PurpleAccount *account = __getacct(env, info);
+    purple_account_disconnect(account);
+}
+napi_value _purple_account_is_connected(napi_env env, napi_callback_info info) {
+    PurpleAccount *account = __getacct(env, info);
+    bool res = purple_account_is_connected(account);
+    napi_value jres;
+    napi_get_boolean(env, res, &jres);
+    return jres;
+}
+napi_value _purple_account_is_connecting(napi_env env, napi_callback_info info) {
+    PurpleAccount *account = __getacct(env, info);
+    bool res = purple_account_is_connecting(account);
+    napi_value jres;
+    napi_get_boolean(env, res, &jres);
+    return jres;
+}
+napi_value _purple_account_is_disconnected(napi_env env, napi_callback_info info) {
+    PurpleAccount *account = __getacct(env, info);
+    bool res = purple_account_is_disconnected(account);
+    napi_value jres;
+    napi_get_boolean(env, res, &jres);
+    return jres;
 }
