@@ -71,7 +71,14 @@ void handleReceivedIMMessage(PurpleAccount *account, char *sender, char *buffer,
     msgData->sender = malloc(strlen(sender));
     strcpy(msgData->sender, sender);
 
+    // The first message won't have a conversation, so create it.
+    if (conv == NULL) {
+        // This line was stolen from server.c#L624 where immediately after emitting
+        // received-im-msg it creates a conversation below.
+        conv = purple_conversation_new(PURPLE_CONV_TYPE_IM, account, sender);
+    }
     msgData->conv = conv;
+    char* name =  purple_conversation_get_name(conv);
     msgData->flags = flags;
     ev->freeMe = true;
     ev->data = msgData;
