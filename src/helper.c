@@ -54,6 +54,7 @@ napi_value pollEvents(napi_env env, napi_callback_info info) {
         evtObj = getJsObjectForSignalEvent(env, evtData);
         napi_set_element(env, eventArray, i, evtObj);
         if (evtData->freeMe) {
+            printf("free(evtData->data)");
             free(evtData->data);
         }
         free(eventQueue->data);
@@ -68,6 +69,8 @@ void handlePurpleSignalCb(gpointer signalData, gpointer data) {
     s_signalEventData *ev = malloc(sizeof(s_signalEventData));
     ev->signal = cbData.signal;
     ev->data = signalData;
+    // Don't free this, it's not ours.
+    ev->freeMe = false;
     signalling_push(ev);
 }
 
