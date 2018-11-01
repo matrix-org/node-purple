@@ -1,8 +1,12 @@
 #include "eventloop.h"
-/***
+/*
  Horrible stiching together of libuv's loop for purple.
-***/
+ This works by getting the node env's loop and adding our own
+ timers and polls to it.
+*/
 
+// Structure for timers
+// One uv_timer_t corresponds to one s_evLoopTimer
 typedef struct {
     uint32_t id;
     uv_timer_t* handle;
@@ -10,16 +14,19 @@ typedef struct {
     gpointer data;
 } s_evLoopTimer;
 
+// Structure for inputs
+// Unlike timers, many s_evLoopInputs can be assigned to one fd/handle.
 typedef struct {
     uint32_t id;
     uv_poll_t* handle;
     int fd;
-    uint32_t* openPollCounter;
+    uint32_t* openPollCounter; // Number of open inputs to the handle.
     int operations;
     PurpleInputFunction func;
     gpointer user_data;
 } s_evLoopInput;
 
+// Global state for the eventloop.
 typedef struct {
     uv_loop_t* loop;
     GList *timers; /* s_evLoopTimer */
@@ -143,8 +150,11 @@ gboolean timeout_remove(guint handle) {
 void handle_input(uv_poll_t* handle, int status, int events) {
     GList *l;
     if (status != 0) {
+        // XXX: Do we need to do anything if the status is not ok?
         printf("handle_input reported a not ok status: %s", uv_err_name(status));
     }
+    // XXX: This is rather dreadful, but supposedly fast enough for
+    //      what we are doing.
     for (l = evLoopState.inputs; l != NULL; l = l->next)
     {
         s_evLoopInput *input = (s_evLoopInput*)l->data;
@@ -193,6 +203,7 @@ guint input_add(int fd, PurpleInputCondition cond,
         pollsOpen = malloc(sizeof(uint32_t));
         *pollsOpen = 0;
     } else {
+        // We have an existing handle for this, so just take it.
         s_evLoopInput *previous_handle = (s_evLoopInput*)inputListItem->data;
         poll_handle = previous_handle->handle;
         pollsOpen = previous_handle->openPollCounter;
@@ -207,6 +218,7 @@ guint input_add(int fd, PurpleInputCondition cond,
     input_handle->user_data = user_data;
     input_handle->func = func;
     input_handle->id = evLoopState.inputId;
+    // Increment the counter because we've added another input to this poll.
     (*pollsOpen)++;
     input_handle->openPollCounter = pollsOpen;
     evLoopState.inputId++;
@@ -280,6 +292,7 @@ void call_callback(uv_timer_t* handle) {
         return;
     }
     gboolean res = timer->function(timer->data);
+    // If the function succeeds, continue
     if (!res) {
         printf("free(handle->data);");
         free(handle->data);
@@ -287,6 +300,8 @@ void call_callback(uv_timer_t* handle) {
     }
     uv_timer_again(handle);
 }
+
+
 /**
     * If implemented, should get the current error status for an input.
     *
@@ -300,4 +315,3 @@ void call_callback(uv_timer_t* handle) {
 // int input_get_error(int fd, int *error) {
 
 // }
-
