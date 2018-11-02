@@ -84,6 +84,10 @@ napi_value Init(napi_env env, napi_value exports) {
   napi_set_named_property(env, ns_accounts, "is_connecting", _func);
   napi_create_function(env, NULL, 0, _purple_account_is_disconnected, NULL, &_func);
   napi_set_named_property(env, ns_accounts, "is_disconnected", _func);
+  napi_create_function(env, NULL, 0, _purple_account_get_status_types, NULL, &_func);
+  napi_set_named_property(env, ns_accounts, "get_status_types", _func);
+  napi_create_function(env, NULL, 0, _purple_account_set_status, NULL, &_func);
+  napi_set_named_property(env, ns_accounts, "set_status", _func);
 
   napi_set_named_property(env, exports, "accounts", ns_accounts);
 

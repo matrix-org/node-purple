@@ -39,6 +39,33 @@ napi_value nprpl_account_create(napi_env env, PurpleAccount *acct){
     return obj;
 }
 
+napi_value create_object_from_statustype(napi_env env, PurpleStatusType* statustype) {
+    napi_value obj;
+    napi_value value;
+    napi_create_object(env, &obj);
+
+    /* id */
+    napi_create_string_utf8(env, purple_status_type_get_id(statustype), NAPI_AUTO_LENGTH, &value);
+    napi_set_named_property(env, obj, "id", value);
+
+    /* name */
+    napi_create_string_utf8(env, purple_status_type_get_name(statustype), NAPI_AUTO_LENGTH, &value);
+    napi_set_named_property(env, obj, "id", value);
+
+    /* saveable */
+    napi_get_boolean(env, purple_status_type_is_saveable(statustype), &value);
+    napi_set_named_property(env, obj, "saveable", value);
+
+    /* user_settable */
+    napi_get_boolean(env, purple_status_type_is_user_settable(statustype), &value);
+    napi_set_named_property(env, obj, "user_settable", value);
+
+    /* independent */
+    napi_get_boolean(env, purple_status_type_is_independent(statustype), &value);
+    napi_set_named_property(env, obj, "independent", value);
+
+    return obj;
+}
 
 PurpleAccount* __getacct(napi_env env, napi_callback_info info) {
     PurpleAccount *account;
@@ -157,10 +184,12 @@ void _purple_accounts_connect(napi_env env, napi_callback_info info) {
     PurpleAccount *account = __getacct(env, info);
     purple_account_connect(account);
 }
+
 void _purple_accounts_disconnect(napi_env env, napi_callback_info info) {
     PurpleAccount *account = __getacct(env, info);
     purple_account_disconnect(account);
 }
+
 napi_value _purple_account_is_connected(napi_env env, napi_callback_info info) {
     PurpleAccount *account = __getacct(env, info);
     bool res = purple_account_is_connected(account);
@@ -168,6 +197,7 @@ napi_value _purple_account_is_connected(napi_env env, napi_callback_info info) {
     napi_get_boolean(env, res, &jres);
     return jres;
 }
+
 napi_value _purple_account_is_connecting(napi_env env, napi_callback_info info) {
     PurpleAccount *account = __getacct(env, info);
     bool res = purple_account_is_connecting(account);
@@ -175,10 +205,54 @@ napi_value _purple_account_is_connecting(napi_env env, napi_callback_info info) 
     napi_get_boolean(env, res, &jres);
     return jres;
 }
+
 napi_value _purple_account_is_disconnected(napi_env env, napi_callback_info info) {
     PurpleAccount *account = __getacct(env, info);
     bool res = purple_account_is_disconnected(account);
     napi_value jres;
     napi_get_boolean(env, res, &jres);
     return jres;
+}
+
+napi_value _purple_account_get_status_types(napi_env env, napi_callback_info info) {
+    napi_value status_array;
+    GList* status_types;
+    PurpleAccount *account = __getacct(env, info);
+    napi_create_array(env, &status_array);
+
+    status_types = purple_account_get_status_types(account);
+    GList* l;
+    uint32_t i = 0;
+    for (l = status_types; l != NULL; l = l->next)
+    {
+        PurpleStatusType *type = (PurpleStatusType*)l->data;
+        napi_value obj = create_object_from_statustype(env, type);
+        napi_set_element(env, status_array, i, obj);
+        i++;
+    }
+    return status_array;
+}
+
+void _purple_account_set_status(napi_env env, napi_callback_info info) {
+    PurpleAccount *account;
+    char* id;
+    bool active;
+    int length = 0;
+    size_t argc = 3;
+    napi_value opt[3];
+    napi_get_cb_info(env, info, &argc, &opt, NULL, NULL);
+    if (argc < 3) {
+      napi_throw_error(env, NULL, "takes three arguments");
+    }
+
+    napi_get_value_external(env, opt[0], &account);
+
+    napi_get_value_string_utf8(env, opt[1], NULL, NULL, &length);
+    length++; //Null terminator
+    id = malloc(sizeof(char)* length);
+    napi_get_value_string_utf8(env, opt[1], id, length, NULL);
+
+    napi_get_value_bool(env, opt[2], &active);
+
+    purple_account_set_status(account, id, active, NULL);
 }
