@@ -10,6 +10,9 @@ setInterval(() => {
     }
     libpurple.helper.pollEvents().forEach((ev) => {
         console.log("Got event:", ev);
+        if (ev.eventName === "account-signed-on") {
+          libpurple.accounts.set_status(acct.handle, "Available", true);
+        }
         if (ev.eventName === "received-im-msg"){
             libpurple.messaging.sendIM(acct.handle, ev.sender, ev.message);
         }
@@ -24,6 +27,8 @@ libpurple.helper.setupPurple(
 console.log("Finished setting up purple!");
 //console.log("Plugin list:", libpurple.plugins.get_protocols());
 acct = libpurple.accounts.find("halfshot@localhost/", "prpl-jabber");
+statusTypes = libpurple.accounts.get_status_types(acct.handle);
+console.log(statusTypes);
 //console.log("Acct:", acct);
 //console.log("Enabled:", libpurple.accounts.get_enabled(acct.handle));
 //libpurple.accounts.set_enabled(acct.handle, true);
