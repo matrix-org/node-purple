@@ -147,12 +147,42 @@ gboolean timeout_remove(guint handle) {
     return true;
 }
 
+/**
+* Should remove an input handler.  Analogous to g_source_remove in glib.
+* @param handle an identifier, as returned by #input_add.
+* @return       @c TRUE if the input handler was found and removed.
+* @see purple_input_remove
+*/
+gboolean input_remove (guint handle) {
+    GList* timerListItem = g_list_find_custom(evLoopState.inputs, &handle, findInputById);
+    if (timerListItem == NULL) {
+        // We don't have an input handler for that FD.
+        return false;
+    }
+    s_evLoopInput *input = (s_evLoopInput*)timerListItem->data;
+    int fd = input->fd;
+    int polls = --(*input->openPollCounter);
+    evLoopState.inputs = g_list_remove(evLoopState.inputs, input);
+    printf("Removing a input for %d %d\n", input->fd, polls);
+    if (polls > 0) {
+        return true;
+    }
+    printf("uv_poll_stop() %d\n", fd);
+    uv_poll_stop(input->handle);
+    // XXX: This might be the wrong thing to do here, so commented out.
+    //      Hopefully a libuv/c veteran could clear this up, pun not intended :p.
+    //free(input->handle);
+    free(input);
+    return true;
+}
+
 void handle_input(uv_poll_t* handle, int status, int events) {
     GList *l;
     if (status != 0) {
         // XXX: Do we need to do anything if the status is not ok?
         printf("handle_input reported a not ok status: %s", uv_err_name(status));
     }
+    int closedFD = -1;
     // XXX: This is rather dreadful, but supposedly fast enough for
     //      what we are doing.
     for (l = evLoopState.inputs; l != NULL; l = l->next)
@@ -169,6 +199,24 @@ void handle_input(uv_poll_t* handle, int status, int events) {
             // Write
             input->func(input->user_data, input->fd, events);
         }
+
+        if (fcntl(input->fd, F_GETFL) < 0 && errno == EBADF) {
+            closedFD = input->fd;
+            // FD is closed, invoke the cleanup.
+            // file descriptor is invalid or closed
+        }
+    }
+    if (closedFD == -1) {
+        return;
+    }
+    // Cleanup
+    for (l = evLoopState.inputs; l != NULL; l = l->next)
+    {
+        s_evLoopInput *input = (s_evLoopInput*)l->data;
+        if (input->handle != handle) {
+            continue;
+        }
+        input_remove(input->id);
     }
 }
 
@@ -191,7 +239,7 @@ void handle_input(uv_poll_t* handle, int status, int events) {
 guint input_add(int fd, PurpleInputCondition cond,
                 PurpleInputFunction func, gpointer user_data) {
 
-    uv_poll_t *poll_handle;
+    uv_poll_t *poll_handle = NULL;
     uint32_t *pollsOpen;
 
     // Iterate over existing inputs to see if a handle exists.
@@ -227,39 +275,10 @@ guint input_add(int fd, PurpleInputCondition cond,
     evLoopState.inputs = g_list_append(evLoopState.inputs, input_handle);
 
     // enum has 1=readable, 2=writable, which coincidentally matches libpurple's PurpleInputCondition...
+    printf("uv_poll_start() %d %d\n", fd, *pollsOpen);
     uv_poll_start(poll_handle, (int)cond, handle_input);
-    return evLoopState.inputId - 1;
+    return input_handle->id;
 }
-
-/**
-* Should remove an input handler.  Analogous to g_source_remove in glib.
-* @param handle an identifier, as returned by #input_add.
-* @return       @c TRUE if the input handler was found and removed.
-* @see purple_input_remove
-*/
-gboolean input_remove (guint handle) {
-    GList* timerListItem = g_list_find_custom(evLoopState.inputs, &handle, findInputById);
-    if (timerListItem == NULL) {
-        // We don't have an input handler for that FD.
-        return false;
-    }
-    s_evLoopInput *input = (s_evLoopInput*)timerListItem->data;
-    (*input->openPollCounter)--;
-    evLoopState.inputs = g_list_remove(evLoopState.inputs, input);
-    printf("Removing a input for %d", input->fd);
-    if (*input->openPollCounter > 0) {
-        printf("free(input);");
-        free(input);
-        return true;
-    }
-    uv_poll_stop(input->handle);
-    // XXX: This might be the wrong thing to do here, so commented out.
-    //      Hopefully a libuv/c veteran could clear this up, pun not intended :p.
-    //free(input->handle);
-    //free(input);
-    return true;
-}
-
 
 static PurpleEventLoopUiOps glib_eventloops =
 {
