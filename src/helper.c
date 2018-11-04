@@ -173,12 +173,13 @@ napi_value setupPurple(napi_env env, napi_callback_info info) {
     purple_prefs_load();
     printf("purple_set_blist()\n");
     purple_set_blist(purple_blist_new());
-    printf("purple_blist_load()\n");
-    purple_blist_load();
     printf("purple_core_init()\n");
     purple_core_init(STR_PURPLE_UI);
     // To restore all the accounts.
     purple_accounts_restore_current_statuses();
+    // To get our buddies :3
+    printf("purple_blist_load()\n");
+    purple_blist_load();
     wirePurpleSignalsIntoNode(env, opts.eventFunc);
     return n_undef;
 }
