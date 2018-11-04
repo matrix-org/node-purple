@@ -91,15 +91,8 @@ napi_value _purple_accounts_new(napi_env env, napi_callback_info info) {
 
     size_t length;
 
-    napi_get_value_string_utf8(env, opts[0], NULL, NULL, &length);
-    length++; //Null terminator
-    char* name = malloc(sizeof(char)* length);
-    napi_get_value_string_utf8(env, opts[0], name, length, NULL);
-
-    napi_get_value_string_utf8(env, opts[1], NULL, NULL, &length);
-    length++; //Null terminator
-    char* prpl = malloc(sizeof(char)* length);
-    napi_get_value_string_utf8(env, opts[1], prpl, length, NULL);
+    char* name = napi_help_strfromval(env, opts[0]);
+    char* prpl = napi_help_strfromval(env, opts[1]);
 
     PurpleAccount *account = purple_account_new(name, prpl);
     n_out = nprpl_account_create(env, account);
@@ -124,15 +117,8 @@ napi_value _purple_accounts_find(napi_env env, napi_callback_info info) {
 
     size_t length;
 
-    napi_get_value_string_utf8(env, opts[0], NULL, NULL, &length);
-    length++; //Null terminator
-    char* name = malloc(sizeof(char)* length);
-    napi_get_value_string_utf8(env, opts[0], name, length, NULL);
-
-    napi_get_value_string_utf8(env, opts[1], NULL, NULL, &length);
-    length++; //Null terminator
-    char* prpl = malloc(sizeof(char)* length);
-    napi_get_value_string_utf8(env, opts[1], prpl, length, NULL);
+    char* name = napi_help_strfromval(env, opts[0]);
+    char* prpl = napi_help_strfromval(env, opts[1]);
 
     PurpleAccount *account = purple_accounts_find(name, prpl);
     if (account == false) {
@@ -246,12 +232,7 @@ void _purple_account_set_status(napi_env env, napi_callback_info info) {
     }
 
     napi_get_value_external(env, opt[0], &account);
-
-    napi_get_value_string_utf8(env, opt[1], NULL, NULL, &length);
-    length++; //Null terminator
-    id = malloc(sizeof(char)* length);
-    napi_get_value_string_utf8(env, opt[1], id, length, NULL);
-
+    id = napi_help_strfromval(env, opt[1]);
     napi_get_value_bool(env, opt[2], &active);
 
     purple_account_set_status(account, id, active, NULL);

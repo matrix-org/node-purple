@@ -6,6 +6,7 @@
 #include <status.h>
 #include <prpl.h>
 #include "../helper.h"
+#include "../napi_helpers.h"
 
 napi_value _purple_accounts_new(napi_env env, napi_callback_info info);
 napi_value _purple_accounts_find(napi_env env, napi_callback_info info);
