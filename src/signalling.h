@@ -5,7 +5,7 @@
 #include <node_api.h>
 #include <account.h>
 #include <conversation.h>
-#include "bindings/b_accounts.h";
+#include "bindings/b_accounts.h"
 
 typedef struct {
     char* signal;
