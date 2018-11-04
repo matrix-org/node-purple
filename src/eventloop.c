@@ -299,6 +299,7 @@ PurpleEventLoopUiOps* eventLoop_get(napi_env* env) {
     if (evLoopState.loop == NULL && napi_get_uv_event_loop(*env, &loop) != napi_ok){
         napi_throw_error(*env, NULL, "Could not get UV loop");
     }
+    evLoopState.inputId = 1;
     evLoopState.loop = loop;
     return &glib_eventloops;
 }
