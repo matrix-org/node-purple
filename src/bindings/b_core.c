@@ -1,7 +1,5 @@
 #include "b_core.h"
 
-const char *PURPLE_UI = "matrix-bridge";
-
 napi_value _purple_core_get_version(napi_env env, napi_callback_info info) {
   const char *version;
   napi_status status;
@@ -20,7 +18,7 @@ napi_value _purple_core_get_version(napi_env env, napi_callback_info info) {
 napi_value _purple_core_init(napi_env env, napi_callback_info info) {
   gboolean result;
   napi_value n_result;
-  result = purple_core_init(PURPLE_UI);
+  result = purple_core_init("matrix-bridge");
 
   if (napi_get_boolean(env, result, &n_result) != napi_ok) {
     napi_throw_error(env, NULL, "Unable to create return value");
