@@ -3,8 +3,11 @@
 
 #include <conversation.h>
 #include <account.h>
+#include <connection.h>
+#include <server.h>
 #include <node_api.h>
+#include <prpl.h>
+#include "napi_helpers.h"
 
-void messaging_sendIM(napi_env env, napi_callback_info info);
-
+void messaging_bind_node(napi_env env,napi_value root);
 #endif

@@ -95,16 +95,8 @@ napi_value Init(napi_env env, napi_value exports) {
 
   napi_set_named_property(env, exports, "accounts", ns_accounts);
 
-  /* Create messaging */
-  napi_value ns_messaging;
-  napi_create_object(env, &ns_messaging);
-
-  napi_create_function(env, NULL, 0, messaging_sendIM, NULL, &_func);
-  napi_set_named_property(env, ns_messaging, "sendIM", _func);
-
-  napi_set_named_property(env, exports, "messaging", ns_messaging);
-
   // This is the right way to do it :)
+  messaging_bind_node(env, exports);
   buddy_bind_node(env, exports);
 
   return exports;
