@@ -31,7 +31,6 @@ void getSetupPurpleStruct(napi_env env, napi_callback_info info, s_setupPurple *
     /* userDir */
     if (getValueFromObject(env, opts, "userDir", &type, &value)) {
       status = napi_get_value_string_utf8(env, value, (char *) &stemp.userDir, 512, NULL);
-      printf("status: %d\ndir: %s\n", status, stemp.userDir);
       stemp.userDirSet = true;
     }
     if (napi_ok != napi_get_named_property(env, opts, "eventFunc", &stemp.eventFunc)) {
@@ -54,7 +53,6 @@ napi_value pollEvents(napi_env env, napi_callback_info info) {
         evtObj = getJsObjectForSignalEvent(env, evtData);
         napi_set_element(env, eventArray, i, evtObj);
         if (evtData->freeMe) {
-            printf("free(evtData->data)");
             free(evtData->data);
         }
         free(eventQueue->data);
@@ -192,12 +190,10 @@ bool getValueFromObject(napi_env env, napi_value object, char* propStr, napi_val
   bool hasProperty;
   status = napi_create_string_utf8(env, propStr, NAPI_AUTO_LENGTH, &propName);
   if (status != napi_ok) {
-    printf("Status %d\n", status);
     napi_throw_error(env, NULL, "Could not get value from object: Could not create string");
   }
   status = napi_has_property(env, object, propName, &hasProperty);
   if (status != napi_ok) {
-    printf("Status %d\n", status);
     napi_throw_error(env, NULL, "Could not get value from object: Could not get property");
   }
   if (!hasProperty) {
@@ -205,12 +201,10 @@ bool getValueFromObject(napi_env env, napi_value object, char* propStr, napi_val
   }
   status = napi_get_property(env, object, propName, value);
   if (status != napi_ok) {
-    printf("Status %d\n", status);
     napi_throw_error(env, NULL, "Could not get value from object: Could not get property");
   }
   status = napi_typeof(env, *value, type);
   if (status != napi_ok) {
-    printf("Status %d\n", status);
     napi_throw_error(env, NULL, "Could not get value from object: Could not get type");
   }
   return true;

@@ -75,7 +75,7 @@ PurpleAccount* __getacct(napi_env env, napi_callback_info info) {
     if (argc < 1) {
       napi_throw_error(env, NULL, "takes one argument");
     }
-    napi_get_value_external(env, opt, &account);
+    napi_get_value_external(env, opt, (void*)&account);
     return account;
 }
 
@@ -84,12 +84,10 @@ napi_value _purple_accounts_new(napi_env env, napi_callback_info info) {
     size_t argc = 2;
     napi_value opts[2];
 
-    napi_get_cb_info(env, info, &argc, &opts, NULL, NULL);
+    napi_get_cb_info(env, info, &argc, opts, NULL, NULL);
     if (argc == 0) {
       napi_throw_error(env, NULL, "new takes two arguments");
     }
-
-    size_t length;
 
     char* name = napi_help_strfromval(env, opts[0]);
     char* prpl = napi_help_strfromval(env, opts[1]);
@@ -97,7 +95,6 @@ napi_value _purple_accounts_new(napi_env env, napi_callback_info info) {
     PurpleAccount *account = purple_account_new(name, prpl);
     n_out = nprpl_account_create(env, account);
 
-    printf("free(name, prpl)");
     free(name);
     free(prpl);
 
@@ -110,12 +107,10 @@ napi_value _purple_accounts_find(napi_env env, napi_callback_info info) {
     size_t argc = 2;
     napi_value opts[2];
 
-    napi_get_cb_info(env, info, &argc, &opts, NULL, NULL);
+    napi_get_cb_info(env, info, &argc, opts, NULL, NULL);
     if (argc == 0) {
       napi_throw_error(env, NULL, "find takes two arguments");
     }
-
-    size_t length;
 
     char* name = napi_help_strfromval(env, opts[0]);
     char* prpl = napi_help_strfromval(env, opts[1]);
@@ -126,7 +121,6 @@ napi_value _purple_accounts_find(napi_env env, napi_callback_info info) {
     } else {
         n_out = nprpl_account_create(env, account);
     }
-    printf("free(name, prpl)");
     free(name);
     free(prpl);
 
@@ -143,27 +137,25 @@ napi_value _purple_accounts_get_enabled(napi_env env, napi_callback_info info) {
       napi_throw_error(env, NULL, "get_enabled takes one argument");
     }
 
-    napi_get_value_external(env, opt, &account);
+    napi_get_value_external(env, opt, (void*)&account);
     gboolean enabled = purple_account_get_enabled(account, STR_PURPLE_UI);
     napi_get_boolean(env, enabled, &n_out);
     return n_out;
 }
 
-napi_value _purple_accounts_set_enabled(napi_env env, napi_callback_info info) {
-    napi_value n_out;
+void _purple_accounts_set_enabled(napi_env env, napi_callback_info info) {
     size_t argc = 2;
     napi_value opts[2];
     PurpleAccount *account;
-    napi_get_cb_info(env, info, &argc, &opts, NULL, NULL);
+    napi_get_cb_info(env, info, &argc, opts, NULL, NULL);
     if (argc < 2) {
       napi_throw_error(env, NULL, "set_enabled takes two arguments");
     }
 
-    napi_get_value_external(env, opts[0], &account);
+    napi_get_value_external(env, opts[0], (void*)&account);
     gboolean enable;
-    napi_get_value_bool(env, opts[1], &enable);
+    napi_get_value_bool(env, opts[1], (void*)&enable);
     purple_account_set_enabled(account, STR_PURPLE_UI, enable);
-    return n_out;
 }
 
 void _purple_accounts_connect(napi_env env, napi_callback_info info) {
@@ -223,15 +215,14 @@ void _purple_account_set_status(napi_env env, napi_callback_info info) {
     PurpleAccount *account;
     char* id;
     bool active;
-    int length = 0;
     size_t argc = 3;
     napi_value opt[3];
-    napi_get_cb_info(env, info, &argc, &opt, NULL, NULL);
+    napi_get_cb_info(env, info, &argc, opt, NULL, NULL);
     if (argc < 3) {
       napi_throw_error(env, NULL, "takes three arguments");
     }
 
-    napi_get_value_external(env, opt[0], &account);
+    napi_get_value_external(env, opt[0], (void*)&account);
     id = napi_help_strfromval(env, opt[1]);
     napi_get_value_bool(env, opt[2], &active);
 

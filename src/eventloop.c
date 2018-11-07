@@ -142,7 +142,6 @@ gboolean timeout_remove(guint handle) {
     }
     uv_timer_stop(timer->handle);
     evLoopState.timers = g_list_remove(evLoopState.timers, timer);
-    printf("free(timer)");
     free(timer);
     return true;
 }
@@ -160,18 +159,14 @@ gboolean input_remove (guint handle) {
         return false;
     }
     s_evLoopInput *input = (s_evLoopInput*)timerListItem->data;
-    int fd = input->fd;
     int polls = --(*input->openPollCounter);
     evLoopState.inputs = g_list_remove(evLoopState.inputs, input);
-    printf("Removing a input for %d %d\n", input->fd, polls);
     if (polls > 0) {
         return true;
     }
-    printf("uv_poll_stop() %d\n", fd);
     uv_poll_stop(input->handle);
     // XXX: This might be the wrong thing to do here, so commented out.
     //      Hopefully a libuv/c veteran could clear this up, pun not intended :p.
-    //free(input->handle);
     free(input);
     return true;
 }
@@ -180,7 +175,6 @@ void handle_input(uv_poll_t* handle, int status, int events) {
     GList *l;
     if (status != 0) {
         // XXX: Do we need to do anything if the status is not ok?
-        printf("handle_input reported a not ok status: %s", uv_err_name(status));
     }
     int closedFD = -1;
     // XXX: This is rather dreadful, but supposedly fast enough for
@@ -275,7 +269,6 @@ guint input_add(int fd, PurpleInputCondition cond,
     evLoopState.inputs = g_list_append(evLoopState.inputs, input_handle);
 
     // enum has 1=readable, 2=writable, which coincidentally matches libpurple's PurpleInputCondition...
-    printf("uv_poll_start() %d %d\n", fd, *pollsOpen);
     uv_poll_start(poll_handle, (int)cond, handle_input);
     return input_handle->id;
 }
@@ -299,7 +292,7 @@ PurpleEventLoopUiOps* eventLoop_get(napi_env* env) {
     if (evLoopState.loop == NULL && napi_get_uv_event_loop(*env, &loop) != napi_ok){
         napi_throw_error(*env, NULL, "Could not get UV loop");
     }
-    evLoopState.inputId = 1;
+    //evLoopState.inputId = 1;
     evLoopState.loop = loop;
     return &glib_eventloops;
 }
@@ -314,7 +307,6 @@ void call_callback(uv_timer_t* handle) {
     gboolean res = timer->function(timer->data);
     // If the function succeeds, continue
     if (!res) {
-        printf("free(handle->data);");
         free(handle->data);
         return;
     }

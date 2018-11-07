@@ -58,11 +58,11 @@ napi_value _buddy_find(napi_env env, napi_callback_info info) {
     size_t argc = 2;
     napi_value opt[2];
     napi_value n_out;
-    napi_get_cb_info(env, info, &argc, &opt, NULL, NULL);
+    napi_get_cb_info(env, info, &argc, opt, NULL, NULL);
     if (argc < 2) {
       napi_throw_error(env, NULL, "takes two arguments");
     }
-    napi_get_value_external(env, opt[0], &account);
+    napi_get_value_external(env, opt[0], (void*)&account);
     char* name = napi_help_strfromval(env, opt[1]);
 
     buddy = purple_find_buddy(account, name);
