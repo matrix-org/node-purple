@@ -50,7 +50,7 @@ napi_value create_object_from_statustype(napi_env env, PurpleStatusType* statust
 
     /* name */
     napi_create_string_utf8(env, purple_status_type_get_name(statustype), NAPI_AUTO_LENGTH, &value);
-    napi_set_named_property(env, obj, "id", value);
+    napi_set_named_property(env, obj, "name", value);
 
     /* saveable */
     napi_get_boolean(env, purple_status_type_is_saveable(statustype), &value);
