@@ -3,13 +3,14 @@
   "version": "0.0.2",
   "description": "N-API bindings for libpurple",
   "main": "main.js",
+  "typings": "index.d.ts",
   "author": "Half-Shot <will@half-shot.uk>",
   "license": "Apache-2.0",
   "dependencies": {
     "node-pre-gyp": "0.11.x"
   },
   "scripts": {
-    "install": "node-pre-gyp install --fallback-to-build"
+    "install": "node-pre-gyp install --fallback-to-build --debug"
   },
   "binary": {
     "module_name": "module",
