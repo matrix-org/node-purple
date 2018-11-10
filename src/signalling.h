@@ -33,4 +33,5 @@ GSList* signalling_pop();
 /* Specialist callbacks */
 void handleReceivedMessage(PurpleAccount *account, char *sender, char *buffer, PurpleConversation *conv, PurpleMessageFlags flags, void *data);
 void handleInvited(PurpleAccount *account, const char *inviter, const char *room_name, const char *message, GHashTable *data);
+void handleAccountConnectionError(PurpleAccount *account, PurpleConnectionError type, char* description);
 #endif

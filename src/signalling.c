@@ -13,6 +13,12 @@ typedef struct {
 
 typedef struct {
     PurpleAccount *account;
+    char *description;
+    PurpleConnectionError type;
+} s_EventDataConnectionError;
+
+typedef struct {
+    PurpleAccount *account;
     char *sender;
     char *roomName;
     char *message;
@@ -39,6 +45,19 @@ napi_value getJsObjectForSignalEvent(napi_env env, s_signalEventData *eventData)
         napi_value acct = nprpl_account_create(env, prplAcct);
         napi_set_named_property(env, evtObj, "account", acct);
     }
+
+    if (strcmp(eventData->signal, "account-connection-error") == 0) {
+        s_EventDataConnectionError msgData = *(s_EventDataConnectionError*)eventData->data;
+        napi_value acct = nprpl_account_create(env, msgData.account);
+        napi_set_named_property(env, evtObj, "account", acct);
+
+        napi_create_string_utf8(env, msgData.description, NAPI_AUTO_LENGTH, &value);
+        napi_set_named_property(env, evtObj, "description", value);
+
+        napi_create_uint32(env, msgData.type,&value);
+        napi_set_named_property(env, evtObj, "type", value);
+    }
+
     if (strcmp(eventData->signal, "received-im-msg") == 0) {
         s_EventDataImMessage msgData = *(s_EventDataImMessage*)eventData->data;
         napi_value acct = nprpl_account_create(env, msgData.account);
@@ -164,5 +183,17 @@ void handleInvited(PurpleAccount *account, const char *inviter, const char *room
 
     ev->freeMe = true;
     ev->data = msgData;
+    signalling_push(ev);
+}
+
+void handleAccountConnectionError(PurpleAccount *account, PurpleConnectionError type, char* description) {
+    s_signalEventData *ev = malloc(sizeof(s_signalEventData));
+    s_EventDataConnectionError *msgData = malloc(sizeof(s_EventDataConnectionError));
+    msgData->account = account;
+    msgData->description = description;
+    msgData->type = type;
+    ev->data = msgData;
+    ev->signal = "account-connection-error";
+    ev->freeMe = true;
     signalling_push(ev);
 }

@@ -96,13 +96,11 @@ void wirePurpleSignalsIntoNode(napi_env env, napi_value eventFunc) {
 
     cbData = malloc(sizeof(s_signalCbData));
     cbData->signal = "account-disabled";
-
     purple_signal_connect(accounts_handle, "account-disabled", &handle,
                 PURPLE_CALLBACK(handlePurpleSignalCb), cbData);
 
     cbData = malloc(sizeof(s_signalCbData));
     cbData->signal = "account-enabled";
-
     purple_signal_connect_vargs(accounts_handle, "account-enabled", &handle,
                 PURPLE_CALLBACK(handlePurpleSignalCb), cbData);
 
@@ -114,7 +112,7 @@ void wirePurpleSignalsIntoNode(napi_env env, napi_value eventFunc) {
     cbData = malloc(sizeof(s_signalCbData));
     cbData->signal = "account-connection-error";
     purple_signal_connect(accounts_handle, "account-connection-error", &handle,
-                PURPLE_CALLBACK(handlePurpleSignalCb), cbData);
+                PURPLE_CALLBACK(handleAccountConnectionError), cbData);
 
     cbData = malloc(sizeof(s_signalCbData));
     cbData->signal = "received-im-msg";
