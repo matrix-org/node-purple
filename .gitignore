@@ -11,3 +11,7 @@ lib/
 *.files
 *.includes
 *.config
+
+deps/libpurple
+deps/pidgin-*
+deps/*.tar*
