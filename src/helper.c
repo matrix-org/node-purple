@@ -117,12 +117,12 @@ void wirePurpleSignalsIntoNode(napi_env env, napi_value eventFunc) {
     cbData = malloc(sizeof(s_signalCbData));
     cbData->signal = "received-im-msg";
     purple_signal_connect(conv_handle, "received-im-msg", &handle,
-                PURPLE_CALLBACK(handleReceivedMessage), NULL);
+                PURPLE_CALLBACK(handleReceivedMessage), cbData);
 
     cbData = malloc(sizeof(s_signalCbData));
     cbData->signal = "received-chat-msg";
     purple_signal_connect(conv_handle, "received-chat-msg", &handle,
-                PURPLE_CALLBACK(handleReceivedMessage), NULL);
+                PURPLE_CALLBACK(handleReceivedMessage), cbData);
 
     // Joined
     /*cbData = malloc(sizeof(s_signalCbData));
@@ -139,6 +139,7 @@ void wirePurpleSignalsIntoNode(napi_env env, napi_value eventFunc) {
                 PURPLE_CALLBACK(handleUserLeft), NULL);*/
 
 
+    cbData = malloc(sizeof(s_signalCbData));
     cbData->signal = "chat-invited";
     purple_signal_connect(conv_handle, "chat-invited", &handle,
                 PURPLE_CALLBACK(handleInvited), NULL);
