@@ -58,7 +58,8 @@ napi_value getJsObjectForSignalEvent(napi_env env, s_signalEventData *eventData)
         napi_set_named_property(env, evtObj, "type", value);
     }
 
-    if (strcmp(eventData->signal, "received-im-msg") == 0) {
+    if (strcmp(eventData->signal, "received-im-msg") == 0 ||
+        strcmp(eventData->signal, "received-chat-msg") == 0) {
         s_EventDataImMessage msgData = *(s_EventDataImMessage*)eventData->data;
         napi_value acct = nprpl_account_create(env, msgData.account);
         napi_set_named_property(env, evtObj, "account", acct);
@@ -68,22 +69,30 @@ napi_value getJsObjectForSignalEvent(napi_env env, s_signalEventData *eventData)
 
         napi_create_string_utf8(env, msgData.sender, NAPI_AUTO_LENGTH, &value);
         napi_set_named_property(env, evtObj, "sender", value);
+        if (msgData.conv != NULL) {
+            value = nprpl_conv_create(env, msgData.conv);
+            napi_set_named_property(env, evtObj, "conv", value);
+        }
     }
 
     if (strcmp(eventData->signal, "chat-invite") == 0) {
         s_EventDataInvited msgData = *(s_EventDataInvited*)eventData->data;
         napi_value acct = nprpl_account_create(env, msgData.account);
         napi_set_named_property(env, evtObj, "account", acct);
+        if (msgData.message != NULL) {
+            napi_create_string_utf8(env, msgData.message, NAPI_AUTO_LENGTH, &value);
+            napi_set_named_property(env, evtObj, "message", value);
+        }
 
-        napi_create_string_utf8(env, msgData.message, NAPI_AUTO_LENGTH, &value);
-        napi_set_named_property(env, evtObj, "message", value);
+        if (msgData.roomName != NULL) {
+            napi_create_string_utf8(env, msgData.roomName, NAPI_AUTO_LENGTH, &value);
+            napi_set_named_property(env, evtObj, "room_name", value);
+        }
 
-        napi_create_string_utf8(env, msgData.roomName, NAPI_AUTO_LENGTH, &value);
-        napi_set_named_property(env, evtObj, "room_name", value);
-
-        napi_create_string_utf8(env, msgData.sender, NAPI_AUTO_LENGTH, &value);
-        napi_set_named_property(env, evtObj, "sender", value);
-
+        if(msgData.sender != NULL) {
+            napi_create_string_utf8(env, msgData.sender, NAPI_AUTO_LENGTH, &value);
+            napi_set_named_property(env, evtObj, "sender", value);
+        }
 
         napi_create_object(env, &value);
         GHashTableIter iter;
@@ -127,9 +136,11 @@ GSList *signalling_pop() {
 
 void handleReceivedMessage(PurpleAccount *account, char *sender, char *buffer, PurpleConversation *conv,
                              PurpleMessageFlags flags, void *data) {
+    s_signalCbData cbData = *(s_signalCbData*)data;
     s_signalEventData *ev = malloc(sizeof(s_signalEventData));
     s_EventDataImMessage *msgData = malloc(sizeof(s_EventDataImMessage));
-    ev->signal = "received-im-msg";
+
+    ev->signal = cbData.signal;
     msgData->account = account;
 
     msgData->buffer = malloc(strlen(buffer));
@@ -145,6 +156,12 @@ void handleReceivedMessage(PurpleAccount *account, char *sender, char *buffer, P
         // received-im-msg it creates a conversation below.
         conv = purple_conversation_new(PURPLE_CONV_TYPE_IM, account, sender);
     }
+
+    PurpleConvChat* chat = purple_conversation_get_chat_data(conv);
+    if (chat != NULL) {
+
+    }
+
     msgData->conv = conv;
     msgData->flags = flags;
     ev->freeMe = true;
@@ -158,14 +175,30 @@ void handleInvited(PurpleAccount *account, const char *inviter, const char *room
     ev->signal = "chat-invite";
     msgData->account = account;
 
-    msgData->sender = malloc(strlen(inviter));
-    strcpy(msgData->sender, inviter);
 
-    msgData->roomName = malloc(strlen(room_name));
-    strcpy(msgData->roomName, room_name);
+    if (inviter != NULL) {
+        msgData->sender = malloc(strlen(inviter));
+        strcpy(msgData->sender, inviter);
+    } else {
+        msgData->sender = NULL;
+    }
 
-    msgData->message = malloc(strlen(message));
-    strcpy(msgData->message, message);
+
+    if (room_name != NULL) {
+        msgData->roomName = malloc(strlen(room_name));
+        strcpy(msgData->roomName, room_name);
+    } else {
+        msgData->roomName = NULL;
+    }
+
+
+    if (message != NULL) {
+        msgData->message = malloc(strlen(message));
+        strcpy(msgData->message, message);
+    } else {
+        msgData->message = NULL;
+    }
+
 
     // XXX: I'm not sure this is the best way to copy the table
     //      however it seems the only reliable way to do it.
@@ -190,7 +223,8 @@ void handleAccountConnectionError(PurpleAccount *account, PurpleConnectionError 
     s_signalEventData *ev = malloc(sizeof(s_signalEventData));
     s_EventDataConnectionError *msgData = malloc(sizeof(s_EventDataConnectionError));
     msgData->account = account;
-    msgData->description = description;
+    msgData->description = malloc(strlen(description));
+    strcpy(msgData->description, description);
     msgData->type = type;
     ev->data = msgData;
     ev->signal = "account-connection-error";
