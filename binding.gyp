@@ -22,7 +22,7 @@
            './src/bindings'
         ],
         "libraries": [
-            "-lpurple -L deps/libpurple -lglib-2.0",
+            "-Ldeps/libpurple -lglib-2.0",
         ]
     },
     {
