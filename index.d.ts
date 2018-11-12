@@ -36,7 +36,7 @@ export type Account = {
 
 export type Protocol = {
     name: string;
-    id: string|undefined;
+    id: string;
     homepage: string|undefined;
     summary: string|undefined;
 }
