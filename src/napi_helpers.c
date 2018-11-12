@@ -8,3 +8,17 @@ char* napi_help_strfromval(napi_env env, napi_value opt) {
     napi_get_value_string_utf8(env, opt, buffer, length, NULL);
     return buffer;
 }
+
+napi_value nprpl_conv_create(napi_env env, PurpleConversation *conv) {
+    napi_value obj;
+    napi_value value;
+    napi_create_object(env, &obj);
+    purple_conversation_get_name(conv);
+
+    char *sval = purple_conversation_get_name(conv);
+
+    napi_create_string_utf8(env, sval, NAPI_AUTO_LENGTH, &value);
+    napi_set_named_property(env, obj, "name", value);
+
+    return obj;
+}
