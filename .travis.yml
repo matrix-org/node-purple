@@ -1,0 +1,13 @@
+language: node_js
+before_install:
+  - sudo apt-get install -y build-essentials libuv1
+
+jobs:
+    include:
+    - stage: build
+      script: npm install
+      name: "Build on node 8"
+      node_js: "8"
+    - script: npm install
+      name: "Build on node 10"
+      node_js: "10"
