@@ -55,6 +55,10 @@ export type Buddy = {
      nick: string|undefined;
 };
 
+export type Conversation = {
+    name: string;
+}
+
 /* Sub-modules */
 export class core {
     static get_version(): string;
