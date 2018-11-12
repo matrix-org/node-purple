@@ -16,13 +16,12 @@
         # These are probably ultra-fragile
         'include_dirs': [
            'deps/pidgin-2.13.0/libpurple',
-           '/usr/include/glib-2.0',
-           '/usr/lib/x86_64-linux-gnu/glib-2.0/include',
            './src/',
            './src/bindings'
         ],
         "libraries": [
-            "-Ldeps/libpurple -lglib-2.0",
+            "-Ldeps/libpurple",
+	    "<!(pkg-config --cflags --libs glib-2.0)"
         ]
     },
     {
