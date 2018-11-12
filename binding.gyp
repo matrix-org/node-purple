@@ -1,6 +1,7 @@
 {
     "targets": [{
         "target_name": "module",
+        #"type": "static_library",
         "sources": [
             "./src/module.c",
             "./src/helper.c",
@@ -17,11 +18,12 @@
         'include_dirs': [
            'deps/pidgin-2.13.0/libpurple',
            './src/',
-           './src/bindings'
+           './src/bindings',
+	    '<!(pkg-config --cflags glib-2.0 | cut -c 3-)'
         ],
         "libraries": [
-            "-Ldeps/libpurple",
-	    "<!(pkg-config --cflags --libs glib-2.0)"
+            '-Ldeps/libpurple',
+	    '<!(pkg-config --libs glib-2.0)'
         ]
     },
     {
