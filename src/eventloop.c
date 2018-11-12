@@ -90,6 +90,7 @@ gint findInputByFd(gconstpointer item, gconstpointer fd) {
 * @see purple_timeout_add
 **/
 guint timeout_add (guint interval, GSourceFunc function, gpointer data) {
+    evLoopState.timerId++;
     uv_timer_t *handle = malloc(sizeof(uv_timer_t));
     s_evLoopTimer *timer = malloc(sizeof(s_evLoopTimer));
     uint32_t id = evLoopState.timerId;
@@ -101,7 +102,6 @@ guint timeout_add (guint interval, GSourceFunc function, gpointer data) {
     handle->data = timer;
     evLoopState.timers = g_list_append(evLoopState.timers, timer);
     uv_timer_start(handle, call_callback, interval, 0);
-    evLoopState.timerId++;
     return id;
 }
 
