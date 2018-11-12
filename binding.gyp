@@ -15,16 +15,14 @@
         ],
         # These are probably ultra-fragile
         'include_dirs': [
-           '/usr/include/libpurple',
-           "/usr/lib/purple-2/",
+           'deps/pidgin-2.13.0/libpurple',
            '/usr/include/glib-2.0',
            '/usr/lib/x86_64-linux-gnu/glib-2.0/include',
-           '/home/will/source/libuv/include',
            './src/',
            './src/bindings'
         ],
         "libraries": [
-            "<!@(pkg-config --libs purple)",
+            "-lpurple -L deps/libpurple -lglib-2.0",
         ]
     },
     {
