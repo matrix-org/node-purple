@@ -98,6 +98,7 @@ export class accounts {
 
 export class messaging {
     static sendIM(handle: External, name: string, body: string);
+    static sendChat(handle: External, name: string, body: string);
     static chatParams(handle: External, protocol: string);
     static joinChat(handle: External, components: {[key: string]:string;});
     static rejectChat(handle: External, components: {[key: string]:string;});
