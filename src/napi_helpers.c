@@ -20,5 +20,9 @@ napi_value nprpl_conv_create(napi_env env, PurpleConversation *conv) {
     napi_create_string_utf8(env, sval, NAPI_AUTO_LENGTH, &value);
     napi_set_named_property(env, obj, "name", value);
 
+    /* handle */
+    napi_create_external(env, conv, NULL, NULL, &value);
+    napi_set_named_property(env, obj, "handle", value);
+
     return obj;
 }

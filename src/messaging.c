@@ -145,6 +145,29 @@ void messaging_rejectChat(napi_env env, napi_callback_info info) {
 
 }
 
+napi_value messaging_getBuddyFromChat(napi_env env, napi_callback_info info) {
+    // purple_conv_chat_cb_find
+    PurpleConversationType type;
+    PurpleConversation* conv;
+    napi_value res;
+    size_t argc = 2;
+    napi_value opts[2];
+
+    napi_get_cb_info(env, info, &argc, opts, NULL, NULL);
+    if (argc < 2) {
+      napi_throw_error(env, NULL, "getBuddyFromConv takes two arguments");
+      return;
+    }
+    napi_get_value_external(env, opts[0], (void*)&conv);
+    type = purple_conversation_get_type(conv);
+    if (type == PURPLE_CONV_TYPE_CHAT) {
+        PurpleConvChat* chat = purple_conversation_get_chat_data(conv);
+    } else {
+        napi_get_undefined(env, &res);
+    }
+    return res;
+}
+
 void messaging_bind_node(napi_env env,napi_value root) {
     napi_value namespace;
     napi_value _func;
@@ -161,6 +184,9 @@ void messaging_bind_node(napi_env env,napi_value root) {
 
     napi_create_function(env, NULL, 0, messaging_rejectChat, NULL, &_func);
     napi_set_named_property(env, namespace, "rejectChat", _func);
+
+    napi_create_function(env, NULL, 0, messaging_getBuddyFromChat, NULL, &_func);
+    napi_set_named_property(env, namespace, "getBuddyFromConv", _func);
 
     napi_set_named_property(env, root, "messaging", namespace);
 }

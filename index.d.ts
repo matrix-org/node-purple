@@ -56,6 +56,7 @@ export type Buddy = {
 };
 
 export type Conversation = {
+    handle: External;
     name: string;
 }
 
@@ -99,6 +100,7 @@ export class messaging {
     static chatParams(handle: External, protocol: string);
     static joinChat(handle: External, components: {[key: string]:string;});
     static rejectChat(handle: External, components: {[key: string]:string;});
+    static getBuddyFromConv(handle: External, buddyName: string);
 }
 
 export class buddy {
