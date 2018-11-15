@@ -5,8 +5,8 @@ bool getValueFromObject(napi_env env, napi_value object, char* propStr, napi_val
 typedef struct {
   int32_t debugEnabled;
   napi_value eventFunc;
-  char userDir[512];
-  bool userDirSet;
+  char* userDir;
+  char* pluginDir;
 } s_setupPurple;
 
 void getSetupPurpleStruct(napi_env env, napi_callback_info info, s_setupPurple *o) {
@@ -16,7 +16,10 @@ void getSetupPurpleStruct(napi_env env, napi_callback_info info, s_setupPurple *
     s_setupPurple stemp;
     napi_valuetype type;
     napi_value value;
-    stemp.userDirSet = false;
+
+    stemp.userDir = NULL;
+    stemp.pluginDir = NULL;
+
 
     napi_get_cb_info(env, info, &argc, &opts, NULL, NULL);
     if (argc == 0) {
@@ -28,14 +31,20 @@ void getSetupPurpleStruct(napi_env env, napi_callback_info info, s_setupPurple *
       status = napi_get_value_int32(env, value, &stemp.debugEnabled);
     }
 
-    /* userDir */
-    if (getValueFromObject(env, opts, "userDir", &type, &value)) {
-      status = napi_get_value_string_utf8(env, value, (char *) &stemp.userDir, 512, NULL);
-      stemp.userDirSet = true;
-    }
     if (napi_ok != napi_get_named_property(env, opts, "eventFunc", &stemp.eventFunc)) {
         napi_throw_error(env, NULL, "setupPurple expects eventFunc to be defined");
     }
+
+    /* userDir */
+    if (getValueFromObject(env, opts, "userDir", &type, &value) && type == napi_string) {
+      stemp.userDir = napi_help_strfromval(env, value);
+    }
+
+    /* pluginDir */
+    if (getValueFromObject(env, opts, "pluginDir", &type, &value) && type == napi_string) {
+      stemp.pluginDir = napi_help_strfromval(env, value);
+    }
+
     *o = stemp;
 }
 
@@ -180,10 +189,13 @@ napi_value setupPurple(napi_env env, napi_callback_info info) {
     purple_eventloop_set_ui_ops(eventLoop_get(&env));
 
     getSetupPurpleStruct(env, info, &opts);
-    if (opts.userDirSet) {
+    if (opts.userDir != NULL) {
       purple_util_set_user_dir(opts.userDir);
     }
 
+    if (opts.pluginDir != NULL) {
+      purple_plugins_add_search_path(opts.pluginDir);
+    }
 
     printf("purple_debug_set_enabled(%d)\n", opts.debugEnabled);
     purple_debug_set_enabled(opts.debugEnabled);
