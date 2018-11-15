@@ -102,6 +102,8 @@ export class messaging {
     static joinChat(handle: External, components: {[key: string]:string;});
     static rejectChat(handle: External, components: {[key: string]:string;});
     static getBuddyFromConv(handle: External, buddyName: string);
+    static getNickForChat(chatHandle: External);
+    static findConversation(acct: External, name: string): Conversation;
 }
 
 export class buddy {

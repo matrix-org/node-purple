@@ -43,6 +43,49 @@ void messaging_sendIM(napi_env env, napi_callback_info info) {
     free(body);
 }
 
+void messaging_sendChat(napi_env env, napi_callback_info info) {
+    PurpleAccount* account;
+    size_t argc = 3;
+    napi_value opts[3];
+    char* name;
+    char* body;
+
+    napi_get_cb_info(env, info, &argc, opts, NULL, NULL);
+    if (argc < 3) {
+        napi_throw_error(env, NULL, "sendIM takes three arguments");
+        return;
+    }
+
+    // Get the account
+    napi_get_value_external(env, opts[0], (void*)&account);
+
+    if (account == NULL) {
+        napi_throw_error(env, NULL, "account is null");
+        return;
+    }
+
+    name = napi_help_strfromval(env, opts[1]);
+
+    const PurpleConversation* conv = purple_find_conversation_with_account(
+        PURPLE_CONV_TYPE_CHAT,
+        name,
+        account
+    );
+
+    if (conv == NULL) {
+        napi_throw_error(env, NULL, "conversation not found");
+        return;
+    }
+    // Get the chat
+    PurpleConvChat* convChat = purple_conversation_get_chat_data(conv);
+
+    body = napi_help_strfromval(env, opts[2]);
+
+    purple_conv_chat_send(convChat, body);
+    free(name);
+    free(body);
+}
+
 napi_value messaging_chatParams(napi_env env, napi_callback_info info) {
     PurplePlugin* plugin;
     PurpleAccount* account;
@@ -168,6 +211,68 @@ napi_value messaging_getBuddyFromChat(napi_env env, napi_callback_info info) {
     return res;
 }
 
+napi_value messaging_getNickForChat(napi_env env, napi_callback_info info) {
+    // purple_conv_chat_cb_find
+    PurpleConversationType type;
+    PurpleConversation* conv;
+    napi_value res;
+    size_t argc = 1;
+    napi_value opts[1];
+
+    napi_get_cb_info(env, info, &argc, opts, NULL, NULL);
+    if (argc < 1) {
+      napi_throw_error(env, NULL, "getNickForChat takes one argument");
+      return;
+    }
+    napi_get_value_external(env, opts[0], (void*)&conv);
+    type = purple_conversation_get_type(conv);
+    if (type == PURPLE_CONV_TYPE_CHAT) {
+        PurpleConvChat* chat = purple_conversation_get_chat_data(conv);
+        char* nick = purple_conv_chat_get_nick(chat);
+        napi_create_string_utf8(env, nick, NAPI_AUTO_LENGTH, &res);
+    } else {
+        napi_throw_error(env, NULL, "conversation was not PURPLE_CONV_TYPE_CHAT");
+    }
+    return res;
+}
+
+napi_value messaging_findConversation(napi_env env, napi_callback_info info) {
+    PurpleAccount* account;
+    size_t argc = 2;
+    napi_value opts[2];
+    char* name;
+
+    napi_get_cb_info(env, info, &argc, opts, NULL, NULL);
+    if (argc < 2) {
+        napi_throw_error(env, NULL, "findConversation takes two arguments");
+        return;
+    }
+
+    // Get the account
+    napi_get_value_external(env, opts[0], (void*)&account);
+
+    if (account == NULL) {
+        napi_throw_error(env, NULL, "account is null");
+        return;
+    }
+
+    name = napi_help_strfromval(env, opts[1]);
+
+    const PurpleConversation* conv = purple_find_conversation_with_account(
+        PURPLE_CONV_TYPE_ANY,
+        name,
+        account
+    );
+
+    free(name);
+    if (conv == NULL) {
+        napi_throw_error(env, NULL, "conversation not found");
+        return;
+    }
+
+    return nprpl_conv_create(env, conv);
+}
+
 void messaging_bind_node(napi_env env,napi_value root) {
     napi_value namespace;
     napi_value _func;
@@ -175,6 +280,9 @@ void messaging_bind_node(napi_env env,napi_value root) {
 
     napi_create_function(env, NULL, 0, messaging_sendIM, NULL, &_func);
     napi_set_named_property(env, namespace, "sendIM", _func);
+
+    napi_create_function(env, NULL, 0, messaging_sendChat, NULL, &_func);
+    napi_set_named_property(env, namespace, "sendChat", _func);
 
     napi_create_function(env, NULL, 0, messaging_chatParams, NULL, &_func);
     napi_set_named_property(env, namespace, "chatParams", _func);
@@ -187,6 +295,12 @@ void messaging_bind_node(napi_env env,napi_value root) {
 
     napi_create_function(env, NULL, 0, messaging_getBuddyFromChat, NULL, &_func);
     napi_set_named_property(env, namespace, "getBuddyFromConv", _func);
+
+    napi_create_function(env, NULL, 0, messaging_getNickForChat, NULL, &_func);
+    napi_set_named_property(env, namespace, "getNickForChat", _func);
+
+    napi_create_function(env, NULL, 0, messaging_findConversation, NULL, &_func);
+    napi_set_named_property(env, namespace, "findConversation", _func);
 
     napi_set_named_property(env, root, "messaging", namespace);
 }
