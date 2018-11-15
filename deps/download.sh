@@ -27,7 +27,7 @@ if [ -d $PURPLE_DIR ]; then
   exit 0;
 else
   echo "Downloading purple headers"
-  wget "https://vorboss.dl.sourceforge.net/project/pidgin/Pidgin/$PURPLE_VER/pidgin-$PURPLE_VER.tar.bz2" -O purple.tar.bz2
+  wget "https://vorboss.dl.sourceforge.net/project/pidgin/Pidgin/$PURPLE_VER/pidgin-$PURPLE_VER.tar.bz2" -O $PURPLE_TAR
 fi
 
 # Download the libaries
@@ -36,22 +36,22 @@ if [ -d $LIB_DIR ]; then
   exit 0;
 else
   echo "Downloading purple libraries"
-  wget "https://half-shot.uk/files/libpurple/libpurple-$PURPLE_VER-$ARCH.tar.xz" -O libpurple.tar.xz
+  wget "https://half-shot.uk/files/libpurple/libpurple-$PURPLE_VER-$ARCH.tar.xz" -O $LIB_TAR
 fi
 
 sha256sum -c checksum.sha256
 
 if [ $? != 0 ]; then
   echo "Checksums failed, not continuing"
-  rm purple.tar.bz2
-  rm libpurple.tar.xz
+  rm $PURPLE_TAR
+  rm $LIB_TAR
   exit 1;
 fi
 
 echo "Extracting files"
-tar -xf purple.tar.bz2
+tar -xf $PURPLE_TAR
 mkdir $LIB_DIR
-tar -xf libpurple.tar.xz -C $LIB_DIR
+tar -xf $LIB_TAR -C $LIB_DIR
 
 echo "Removing archives"
 rm purple.tar.bz2
