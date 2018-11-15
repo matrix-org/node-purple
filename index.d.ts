@@ -23,6 +23,7 @@ export type Event = {
 export type SetupArgs = {
     debugEnabled: number;
     userDir: string|undefined;
+    pluginDir: string|undefined;
 }
 
 export type Account = {
