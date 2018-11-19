@@ -81,7 +81,7 @@ PurpleAccount* __getacct(napi_env env, napi_callback_info info) {
 
 napi_value _purple_accounts_new(napi_env env, napi_callback_info info) {
     napi_value n_out;
-    size_t argc = 2;
+    size_t argc = 3;
     napi_value opts[2];
 
     napi_get_cb_info(env, info, &argc, opts, NULL, NULL);
@@ -93,6 +93,15 @@ napi_value _purple_accounts_new(napi_env env, napi_callback_info info) {
     char* prpl = napi_help_strfromval(env, opts[1]);
 
     PurpleAccount *account = purple_account_new(name, prpl);
+    if (account != NULL) {
+        purple_accounts_add(account);
+    }
+    if (argc == 3) {
+        char* password = napi_help_strfromval(env, opts[2]);
+        purple_account_set_remember_password(account, TRUE);
+        purple_account_set_password(account, password);
+        free(password);
+    }
     n_out = nprpl_account_create(env, account);
 
     free(name);

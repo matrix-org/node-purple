@@ -82,7 +82,7 @@ export class plugins {
 }
 
 export class accounts {
-    static new(name: string, pluginId: string): Account;
+    static new(name: string, pluginId: string, password?: string): Account;
     static find(name: string, pluginId: string): Account;
     static get_enabled(handle: External): boolean;
     static set_enabled(handle: External, enable: boolean);
