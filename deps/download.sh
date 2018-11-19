@@ -39,6 +39,9 @@ else
   wget "https://half-shot.uk/files/libpurple/libpurple-$PURPLE_VER-$ARCH.tar.xz" -O libpurple.tar.xz
 fi
 
+echo "Checking checksums, expected values below:"
+cat checksum.sha256
+
 sha256sum -c checksum.sha256
 
 if [ $? != 0 ]; then
