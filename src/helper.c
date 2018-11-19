@@ -147,6 +147,10 @@ void wirePurpleSignalsIntoNode(napi_env env, napi_value eventFunc) {
     purple_signal_connect(conv_handle, "chat-user-left", &handle,
                 PURPLE_CALLBACK(handleUserLeft), NULL);*/
 
+    cbData = malloc(sizeof(s_signalCbData));
+    cbData->signal = "chat-joined";
+    purple_signal_connect(conv_handle, "chat-joined", &handle,
+                PURPLE_CALLBACK(handleJoined), NULL);
 
     cbData = malloc(sizeof(s_signalCbData));
     cbData->signal = "chat-invited";

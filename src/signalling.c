@@ -75,6 +75,15 @@ napi_value getJsObjectForSignalEvent(napi_env env, s_signalEventData *eventData)
         }
     }
 
+    if (strcmp(eventData->signal, "chat-joined") == 0) {
+        s_EventDataImMessage msgData = *(s_EventDataImMessage*)eventData->data;
+        napi_value acct = nprpl_account_create(env, msgData.account);
+        napi_set_named_property(env, evtObj, "account", acct);
+
+        value = nprpl_conv_create(env, msgData.conv);
+        napi_set_named_property(env, evtObj, "conv", value);
+    }
+
     if (strcmp(eventData->signal, "chat-invite") == 0) {
         s_EventDataInvited msgData = *(s_EventDataInvited*)eventData->data;
         napi_value acct = nprpl_account_create(env, msgData.account);
@@ -214,6 +223,17 @@ void handleInvited(PurpleAccount *account, const char *inviter, const char *room
         g_hash_table_insert(msgData->inviteProps, key, val);
     }
 
+    ev->freeMe = true;
+    ev->data = msgData;
+    signalling_push(ev);
+}
+
+void handleJoined(PurpleConversation *chat) {
+    s_signalEventData *ev = malloc(sizeof(s_signalEventData));
+    s_EventDataImMessage *msgData = malloc(sizeof(s_EventDataImMessage));
+    ev->signal = "chat-joined";
+    msgData->conv = chat; //purple_conv_chat_get_conversation(chat);
+    msgData->account = purple_conversation_get_account(chat);
     ev->freeMe = true;
     ev->data = msgData;
     signalling_push(ev);
