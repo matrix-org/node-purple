@@ -25,6 +25,17 @@ typedef struct {
     GHashTable *inviteProps;
 } s_EventDataInvited;
 
+typedef struct {
+    PurpleAccount *account;
+    char* who;
+    GList* items;
+} e_UserInfoResponse;
+
+typedef struct {
+    char* label;
+    char* value;
+} e_UserInfoResponseItem;
+
 napi_value getJsObjectForSignalEvent(napi_env env, s_signalEventData *eventData) {
     napi_value evtObj;
     napi_value value;
@@ -73,6 +84,29 @@ napi_value getJsObjectForSignalEvent(napi_env env, s_signalEventData *eventData)
             value = nprpl_conv_create(env, msgData.conv);
             napi_set_named_property(env, evtObj, "conv", value);
         }
+    }
+
+    if(strcmp(eventData->signal, "user-info-response") == 0) {
+        e_UserInfoResponse msgData = *(e_UserInfoResponse*)eventData->data;
+        napi_value jkey, jvalue;
+        GList* l;
+        for (l = msgData.items; l != NULL; l = l->next) {
+            e_UserInfoResponseItem item = *(e_UserInfoResponseItem*)l->data;
+            napi_create_string_utf8(env, item.label, NAPI_AUTO_LENGTH, &jkey);
+            if (item.value != NULL) {
+                napi_create_string_utf8(env, item.value, NAPI_AUTO_LENGTH, &jvalue);
+            } else {
+                napi_get_undefined(env, &jvalue);
+            }
+            napi_set_property(env, evtObj, jkey, jvalue);
+        }
+        g_slist_free_full(msgData.items, free);
+
+        napi_value acct = nprpl_account_create(env, msgData.account);
+        napi_set_named_property(env, evtObj, "account", acct);
+
+        napi_create_string_utf8(env, msgData.who, NAPI_AUTO_LENGTH, &value);
+        napi_set_named_property(env, evtObj, "who", value);
     }
 
     if (strcmp(eventData->signal, "chat-joined") == 0) {
@@ -249,5 +283,46 @@ void handleAccountConnectionError(PurpleAccount *account, PurpleConnectionError 
     ev->data = msgData;
     ev->signal = "account-connection-error";
     ev->freeMe = true;
+    signalling_push(ev);
+}
+
+void handleUserInfo(PurpleConnection *gc, const char *who, PurpleNotifyUserInfo *user_info) {
+    GList* entries = purple_notify_user_info_get_entries(user_info);
+    if (entries == NULL) {
+        return;
+    }
+
+    s_signalEventData *ev = malloc(sizeof(s_signalEventData));
+    e_UserInfoResponse *msgData = malloc(sizeof(e_UserInfoResponse));
+
+    msgData->items = NULL;
+            //g_slist_copy_deep(entries, (GCopyFunc)_copy_user_info_entry, NULL);
+    GList* l;
+    for (l = entries; l != NULL; l = l->next) {
+        PurpleNotifyUserInfoEntry *src = l->data;
+        e_UserInfoResponseItem *dest;
+
+        if (PURPLE_NOTIFY_USER_INFO_ENTRY_PAIR != purple_notify_user_info_entry_get_type(src)) {
+            dest = NULL;
+            continue;
+        }
+        dest = malloc(sizeof(e_UserInfoResponseItem));
+
+        char* label = purple_notify_user_info_entry_get_label(src);
+        dest->label = malloc(strlen(label));
+        strcpy(dest->label, label);
+
+        char* value = purple_notify_user_info_entry_get_value(src);
+        dest->value = malloc(strlen(value));
+        strcpy(dest->value, value);
+
+        msgData->items = g_slist_append(msgData->items, dest);
+    }
+    msgData->who = malloc(strlen(who));
+    msgData->account = purple_connection_get_account(gc);
+    strcpy(msgData->who, who);
+    ev->signal = "user-info-response";
+    ev->freeMe = true;
+    ev->data = msgData;
     signalling_push(ev);
 }

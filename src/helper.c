@@ -165,6 +165,8 @@ void wirePurpleSignalsIntoNode(napi_env env, napi_value eventFunc) {
 //}
 napi_value setupPurple(napi_env env, napi_callback_info info) {
     napi_value n_undef;
+    napi_get_undefined(env, &n_undef);
+
     s_setupPurple opts;
     PurpleConversationUiOps uiopts = {
       NULL,                      /* create_conversation  */
@@ -187,7 +189,10 @@ napi_value setupPurple(napi_env env, napi_callback_info info) {
       NULL,
       NULL
     };
-    napi_get_undefined(env, &n_undef);
+    PurpleNotifyUiOps *notifyopts = malloc(sizeof(PurpleNotifyUiOps));
+    notifyopts->notify_userinfo = handleUserInfo;
+    purple_notify_set_ui_ops(notifyopts);
+
 
     printf("purple_eventloop_set_ui_ops()\n");
     purple_eventloop_set_ui_ops(eventLoop_get(&env));

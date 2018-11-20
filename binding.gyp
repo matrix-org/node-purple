@@ -12,6 +12,7 @@
             "./src/bindings/b_plugins.c",
             "./src/bindings/b_accounts.c",
             "./src/bindings/b_buddy.c",
+            "./src/bindings/b_notify.c",
             "./src/napi_helpers.c",
         ],
         # These are probably ultra-fragile

@@ -107,6 +107,10 @@ export class messaging {
     static findConversation(acct: External, name: string): Conversation;
 }
 
+export class notify {
+    static get_user_info(handle: External, who: string);
+}
+
 export class buddy {
     /**
      * Find a buddy in the buddylist.

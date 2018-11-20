@@ -7,6 +7,7 @@
 #include "bindings/b_plugins.h"
 #include "bindings/b_accounts.h"
 #include "bindings/b_buddy.h"
+#include "bindings/b_notify.h"
 #include "helper.h"
 #include "messaging.h"
 
@@ -98,6 +99,7 @@ napi_value Init(napi_env env, napi_value exports) {
   // This is the right way to do it :)
   messaging_bind_node(env, exports);
   buddy_bind_node(env, exports);
+  notify_bind_node(env, exports);
 
   return exports;
 }
