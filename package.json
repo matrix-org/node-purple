@@ -16,6 +16,6 @@
   "binary": {
     "module_name": "module",
     "module_path": "./lib/binding/",
-    "host": "https://your_module.s3-us-west-1.amazonaws.com"
+    "host": "https://half-shot.uk/files/node/node-purple"
   }
 }
