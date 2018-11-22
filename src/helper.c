@@ -147,22 +147,37 @@ void wirePurpleSignalsIntoNode(napi_env env, napi_value eventFunc) {
     purple_signal_connect(conv_handle, "chat-user-left", &handle,
                 PURPLE_CALLBACK(handleUserLeft), NULL);*/
 
-    cbData = malloc(sizeof(s_signalCbData));
-    cbData->signal = "chat-joined";
     purple_signal_connect(conv_handle, "chat-joined", &handle,
                 PURPLE_CALLBACK(handleJoined), NULL);
 
-    cbData = malloc(sizeof(s_signalCbData));
-    cbData->signal = "chat-invited";
     purple_signal_connect(conv_handle, "chat-invited", &handle,
                 PURPLE_CALLBACK(handleInvited), NULL);
 }
 
-//Does everything needed to create a purple session.
-//{
-// debugEnabled: 1|0
-//
-//}
+void _accounts_restore_current_statuses()
+{
+    GList *l;
+    PurpleAccount *account;
+
+    /* If we're not connected to the Internet right now, we bail on this */
+    /*if (!purple_network_is_available())
+    {
+        purple_debug_warning("account", "Network not connected; skipping reconnect\n");
+        return;
+    }*/
+    uint timeout = 0;
+    for (l = purple_accounts_get_all(); l != NULL; l = l->next)
+    {
+        account = (PurpleAccount *)l->data;
+        if (purple_account_get_enabled(account, purple_core_get_ui()) &&
+            (purple_presence_is_online(account->presence)))
+        {
+            timeout_add(timeout, (GSourceFunc)purple_account_connect, account);
+            timeout += 100;
+        }
+    }
+}
+
 napi_value setupPurple(napi_env env, napi_callback_info info) {
     napi_value n_undef;
     napi_get_undefined(env, &n_undef);
@@ -194,7 +209,6 @@ napi_value setupPurple(napi_env env, napi_callback_info info) {
     purple_notify_set_ui_ops(notifyopts);
 
 
-    printf("purple_eventloop_set_ui_ops()\n");
     purple_eventloop_set_ui_ops(eventLoop_get(&env));
 
     getSetupPurpleStruct(env, info, &opts);
@@ -206,23 +220,19 @@ napi_value setupPurple(napi_env env, napi_callback_info info) {
       purple_plugins_add_search_path(opts.pluginDir);
     }
 
-    printf("purple_debug_set_enabled(%d)\n", opts.debugEnabled);
     purple_debug_set_enabled(opts.debugEnabled);
 
-    printf("purple_conversation_set_ui_ops()\n");
     purple_conversation_set_ui_ops(&uiopts, NULL);
-    printf("purple_prefs_load()\n");
     purple_prefs_load();
-    printf("purple_set_blist()\n");
     purple_set_blist(purple_blist_new());
-    printf("purple_core_init()\n");
     purple_core_init(STR_PURPLE_UI);
     // To restore all the accounts.
-    purple_accounts_restore_current_statuses();
+    _accounts_restore_current_statuses();
     // To get our buddies :3
-    printf("purple_blist_load()\n");
     purple_blist_load();
     wirePurpleSignalsIntoNode(env, opts.eventFunc);
+    free(opts.userDir);
+    free(opts.pluginDir);
     return n_undef;
 }
 

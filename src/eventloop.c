@@ -142,6 +142,7 @@ gboolean timeout_remove(guint handle) {
     }
     uv_timer_stop(timer->handle);
     evLoopState.timers = g_list_remove(evLoopState.timers, timer);
+    free(timer->handle);
     free(timer);
     return true;
 }
