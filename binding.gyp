@@ -18,7 +18,7 @@
     {
       "target_name": "module",
       "dependencies": [
-        "action_before_build"
+
       ],
       "sources": [
         "./src/module.c",
@@ -41,6 +41,7 @@
       ],
       "libraries": [
         "-Ldeps/libpurple",
+        "-ldeps/libpurple/libpurple.so.0",
         "<!(pkg-config --libs glib-2.0)"
       ]
     },
