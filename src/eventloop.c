@@ -123,6 +123,14 @@ guint timeout_add_seconds(guint interval, GSourceFunc function, gpointer data) {
     return timeout_add(interval*1000, function, data);
 }
 
+void on_timer_close_complete(uv_handle_t* handle)
+{
+    evLoopState.timers = g_list_remove(evLoopState.timers, handle->data);
+    free(handle->data);
+    free(handle);
+}
+
+
 /**
 * Should remove a callback timer.  Analogous to g_source_remove in glib.
 * @param handle an identifier for a timeout, as returned by
@@ -141,9 +149,9 @@ gboolean timeout_remove(guint handle) {
         return false;
     }
     uv_timer_stop(timer->handle);
-    evLoopState.timers = g_list_remove(evLoopState.timers, timer);
-    free(timer->handle);
-    free(timer);
+    if (!uv_is_closing(timer->handle)) {
+        uv_close(timer->handle, on_timer_close_complete);
+    }
     return true;
 }
 
@@ -307,9 +315,8 @@ void call_callback(uv_timer_t* handle) {
     }
     gboolean res = timer->function(timer->data);
     // If the function succeeds, continue
-    if (!res) {
-        g_list_remove(evLoopState.timers, timer);
-        free(timer);
+    if (!res && !uv_is_closing(timer->handle)) {
+        uv_close((uv_handle_t *)timer->handle, on_timer_close_complete);
         return;
     }
     uv_timer_again(handle);
