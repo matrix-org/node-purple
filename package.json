@@ -10,7 +10,8 @@
     "node-pre-gyp": "0.11.x"
   },
   "scripts": {
-    "install": "node-pre-gyp install --fallback-to-build --debug"
+    "download": "deps/download.sh",
+    "install": "npm run download && node-pre-gyp install --fallback-to-build --debug"
   },
   "binary": {
     "module_name": "module",

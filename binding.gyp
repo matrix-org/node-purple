@@ -1,20 +1,20 @@
 {
   "targets": [
-    {
-      "target_name": "action_before_build",
-      "type": "none",
-      "hard_dependency": 1,
-      "actions": [
-        {
-          "action_name": "unpack_purple_deps",
-          "inputs": ["./deps/download.sh"],
-          "outputs": ["./deps/download.sh"],
-          "action": [
-             "bash", "./deps/download.sh",
-          ]
-        }
-      ],
-    },
+#    {
+#      "target_name": "action_before_build",
+#      "type": "none",
+#      "hard_dependency": 1,
+#      "actions": [
+#        {
+#          "action_name": "unpack_purple_deps",
+#          "inputs": ["./deps/download.sh"],
+#          "outputs": ["./deps/download.sh"],
+#          "action": [
+#             "bash", "./deps/download.sh",
+#          ]
+#        }
+#      ],
+#    },
     {
       "target_name": "module",
       "dependencies": [
