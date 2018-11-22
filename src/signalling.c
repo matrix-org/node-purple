@@ -77,9 +77,11 @@ napi_value getJsObjectForSignalEvent(napi_env env, s_signalEventData *eventData)
 
         napi_create_string_utf8(env, msgData.buffer, NAPI_AUTO_LENGTH, &value);
         napi_set_named_property(env, evtObj, "message", value);
+        free(msgData.buffer);
 
         napi_create_string_utf8(env, msgData.sender, NAPI_AUTO_LENGTH, &value);
         napi_set_named_property(env, evtObj, "sender", value);
+        free(msgData.sender);
         if (msgData.conv != NULL) {
             value = nprpl_conv_create(env, msgData.conv);
             napi_set_named_property(env, evtObj, "conv", value);
@@ -186,23 +188,18 @@ void handleReceivedMessage(PurpleAccount *account, char *sender, char *buffer, P
     ev->signal = cbData.signal;
     msgData->account = account;
 
-    msgData->buffer = malloc(strlen(buffer));
+    msgData->buffer = malloc(strlen(buffer) + 1);
     strcpy(msgData->buffer, buffer);
 
-    msgData->sender = malloc(strlen(sender));
+    msgData->sender = malloc(strlen(sender) + 1);
     strcpy(msgData->sender, sender);
 
-    // TODO: Do not create a convo for chats
-    // The first message won't have a conversation, so create it.
+//    // TODO: Do not create a convo for chats
+//    // The first message won't have a conversation, so create it.
     if (conv == NULL) {
         // This line was stolen from server.c#L624 where immediately after emitting
         // received-im-msg it creates a conversation below.
         conv = purple_conversation_new(PURPLE_CONV_TYPE_IM, account, sender);
-    }
-
-    PurpleConvChat* chat = purple_conversation_get_chat_data(conv);
-    if (chat != NULL) {
-
     }
 
     msgData->conv = conv;
@@ -220,7 +217,7 @@ void handleInvited(PurpleAccount *account, const char *inviter, const char *room
 
 
     if (inviter != NULL) {
-        msgData->sender = malloc(strlen(inviter));
+        msgData->sender = malloc(strlen(inviter) + 1);
         strcpy(msgData->sender, inviter);
     } else {
         msgData->sender = NULL;
@@ -228,7 +225,7 @@ void handleInvited(PurpleAccount *account, const char *inviter, const char *room
 
 
     if (room_name != NULL) {
-        msgData->roomName = malloc(strlen(room_name));
+        msgData->roomName = malloc(strlen(room_name) + 1);
         strcpy(msgData->roomName, room_name);
     } else {
         msgData->roomName = NULL;
@@ -236,7 +233,7 @@ void handleInvited(PurpleAccount *account, const char *inviter, const char *room
 
 
     if (message != NULL) {
-        msgData->message = malloc(strlen(message));
+        msgData->message = malloc(strlen(message) + 1);
         strcpy(msgData->message, message);
     } else {
         msgData->message = NULL;
@@ -277,7 +274,7 @@ void handleAccountConnectionError(PurpleAccount *account, PurpleConnectionError 
     s_signalEventData *ev = malloc(sizeof(s_signalEventData));
     s_EventDataConnectionError *msgData = malloc(sizeof(s_EventDataConnectionError));
     msgData->account = account;
-    msgData->description = malloc(strlen(description));
+    msgData->description = malloc(strlen(description) + 1);
     strcpy(msgData->description, description);
     msgData->type = type;
     ev->data = msgData;
@@ -309,16 +306,16 @@ void handleUserInfo(PurpleConnection *gc, const char *who, PurpleNotifyUserInfo 
         dest = malloc(sizeof(e_UserInfoResponseItem));
 
         char* label = purple_notify_user_info_entry_get_label(src);
-        dest->label = malloc(strlen(label));
+        dest->label = malloc(strlen(label) + 1);
         strcpy(dest->label, label);
 
         char* value = purple_notify_user_info_entry_get_value(src);
-        dest->value = malloc(strlen(value));
+        dest->value = malloc(strlen(value) + 1);
         strcpy(dest->value, value);
 
         msgData->items = g_slist_append(msgData->items, dest);
     }
-    msgData->who = malloc(strlen(who));
+    msgData->who = malloc(strlen(who) + 1);
     msgData->account = purple_connection_get_account(gc);
     strcpy(msgData->who, who);
     ev->signal = "user-info-response";
