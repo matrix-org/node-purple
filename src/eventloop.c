@@ -308,7 +308,8 @@ void call_callback(uv_timer_t* handle) {
     gboolean res = timer->function(timer->data);
     // If the function succeeds, continue
     if (!res) {
-        free(handle->data);
+        g_list_remove(evLoopState.timers, timer);
+        free(timer);
         return;
     }
     uv_timer_again(handle);

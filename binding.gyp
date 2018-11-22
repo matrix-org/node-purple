@@ -37,12 +37,12 @@
         "deps/pidgin-2.13.0/libpurple",
         "./src/",
         "./src/bindings",
+        "./deps/libpurple ",
         "<!(pkg-config --cflags glib-2.0 | cut -c 3-)"
       ],
       "libraries": [
-        "-Ldeps/libpurple",
-        "-ldeps/libpurple/libpurple.so.0",
-        "<!(pkg-config --libs glib-2.0)"
+        "-Wl,-rpath,./deps/libpurple -L ./deps/libpurple",
+        "<!(pkg-config --libs purple)"
       ]
     },
     {
