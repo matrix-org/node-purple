@@ -3,3 +3,15 @@ node_modules
 build/
 appservice/config.yaml
 appservice/purple-registration.yaml
+
+lib/
+
+#Qt Creator
+*.creator*
+*.files
+*.includes
+*.config
+
+deps/libpurple
+deps/pidgin-*
+deps/*.tar*
