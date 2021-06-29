@@ -22,4 +22,7 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node_version }}
-      - run: npm i
+      - name: Install node dependencies and build library
+        run: npm i
+      - name: Check module can be imported
+        run: node main.js # This should exit cleanly if it works

@@ -1,1 +1,2 @@
-module.exports = require(path.join(__dirname, "lib", "node-purple.node"));
+
+module.exports = require(require('path').join(__dirname, "lib", "module.node"));

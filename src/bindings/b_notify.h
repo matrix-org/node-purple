@@ -1,5 +1,5 @@
-#ifndef BUDDY_H_INCLUDED
-#define BUDDY_H_INCLUDED
+#ifndef NOTIFY_H_INCLUDED
+#define NOTIFY_H_INCLUDED
 
 #include <node_api.h>
 #include <account.h>
