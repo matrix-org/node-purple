@@ -1,17 +1,20 @@
 # node-purple
 
-NodeJS N-API bindings for libpurple 2.X.
+NodeJS N-API bindings for libpurple 2.13.0.
 
-**Note:** Bugs against `node-purple` are tracked on [matrix-appservice-purple](https://github.com/matrix-org/matrix-appservice-purple/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3Anode-purple)
+You will need to install these packages in order to compile
+
+- libpurple-bin (2.13.0)
+- libpurple-dev (2.13.0)
+- libglib2.0-dev
+- python3
 
 # Contributing 
 
-TODO
+Bugs against `node-purple` are tracked on [matrix-bifrost](https://github.com/matrix-org/matrix-bifrost/issues?utf8=%E2%9C%93&q=is%3Aissue+label%3Anode-purple)
 
 # Usage
 
 TODO
 
 # Help
-
-TODO

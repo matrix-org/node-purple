@@ -7,15 +7,15 @@
   "author": "Half-Shot <will@half-shot.uk>",
   "license": "Apache-2.0",
   "dependencies": {
-    "node-pre-gyp": "0.11.x"
+    "node-gyp": "^8.1.0",
+    "node-pre-gyp": "^0.17.0"
   },
   "scripts": {
-    "download": "deps/download.sh",
-    "install": "npm run download && node-pre-gyp install --fallback-to-build --debug"
+    "rebuild": "node-pre-gyp build",
+    "build": "node-pre-gyp build"
   },
   "binary": {
     "module_name": "module",
-    "module_path": "./lib/binding/",
-    "host": "https://half-shot.uk/files/node/node-purple"
+    "module_path": "./lib"
   }
 }

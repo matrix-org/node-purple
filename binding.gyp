@@ -1,25 +1,8 @@
 {
   "targets": [
-#    {
-#      "target_name": "action_before_build",
-#      "type": "none",
-#      "hard_dependency": 1,
-#      "actions": [
-#        {
-#          "action_name": "unpack_purple_deps",
-#          "inputs": ["./deps/download.sh"],
-#          "outputs": ["./deps/download.sh"],
-#          "action": [
-#             "bash", "./deps/download.sh",
-#          ]
-#        }
-#      ],
-#    },
     {
       "target_name": "module",
-      "dependencies": [
-
-      ],
+      "dependencies": [],
       "sources": [
         "./src/module.c",
         "./src/helper.c",
@@ -34,14 +17,11 @@
         "./src/napi_helpers.c"
       ],
       "include_dirs": [
-        "deps/pidgin-2.13.0/libpurple",
-        "./src/",
-        "./src/bindings",
-        "./deps/libpurple ",
-        "<!(pkg-config --cflags glib-2.0 | cut -c 3-)"
+        "<!(pkg-config --cflags purple | cut -c 3-)",
+        "./src",
+        "./src/bindings"
       ],
       "libraries": [
-        "-Wl,-rpath,./deps/libpurple -L ./deps/libpurple",
         "<!(pkg-config --libs purple)"
       ]
     },
@@ -56,7 +36,7 @@
           "files": [
             "<(PRODUCT_DIR)/module.node"
           ],
-          "destination": "./lib/binding/"
+          "destination": "./lib/"
         }
       ]
     }

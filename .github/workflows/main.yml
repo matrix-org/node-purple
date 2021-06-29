@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node_version: ['14', '16']
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install -y libpurple-dev libglib2.0-dev python3
+      - name: Use Node.js ${{ matrix.node_version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node_version }}
+      - name: Install node dependencies and build library
+        run: npm i
+      - name: Check module can be imported
+        run: node main.js # This should exit cleanly if it works
