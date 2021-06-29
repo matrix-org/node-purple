@@ -4,7 +4,7 @@ NodeJS N-API bindings for libpurple 2.13.0.
 
 You will need to install these packages in order to compile
 
-- libpurple
+- libpurple-bin (2.13.0)
 - libpurple-dev (2.13.0)
 - libglib2.0-dev
 - python3
