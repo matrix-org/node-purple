@@ -16,6 +16,8 @@ jobs:
         node_version: ['14', '16']
     steps:
       - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: sudo apt-get install libpurple libpurple-dev libglib2.0-dev python3
       - name: Use Node.js ${{ matrix.node_version }}
         uses: actions/setup-node@v1
         with:
