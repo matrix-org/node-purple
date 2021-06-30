@@ -24,5 +24,5 @@ jobs:
           node-version: ${{ matrix.node_version }}
       - name: Install node dependencies and build library
         run: npm i
-      - name: Check module can be imported
-        run: node main.js # This should exit cleanly if it works
+      - name: Run tests
+        run: npm run test
