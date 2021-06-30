@@ -75,7 +75,7 @@ napi_value _buddy_find(napi_env env, napi_callback_info info) {
     return n_out;
 }
 
-void buddy_bind_node(napi_env env,napi_value root) {
+void buddy_bind_node(napi_env env, napi_value root) {
     napi_value namespace;
     napi_value func;
     napi_create_object(env, &namespace);

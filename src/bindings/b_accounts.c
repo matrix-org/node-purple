@@ -110,6 +110,93 @@ napi_value _purple_accounts_new(napi_env env, napi_callback_info info) {
     return n_out;
 }
 
+/**
+ * Configure an account with a given object, calling purple_account_set_* for
+ * string, int and boolean value types.
+ * This will throw if the account does not exist, or if the configuration object was invalid.
+ * This operation MAY partially succeed.
+ */
+napi_value _purple_account_configure(napi_env env, napi_callback_info info) {
+    napi_value n_out;
+    size_t argc = 2;
+    napi_value opts[2];
+    PurpleAccount *account;
+
+    if (napi_get_cb_info(env, info, &argc, opts, NULL, NULL) != napi_ok) {
+      napi_throw_error(env, NULL, "napi_get_cb_info failed");
+      return;
+    }
+    if (argc < 2) {
+      napi_throw_error(env, NULL, "get_enabled takes two arguments");
+      return;
+    }
+
+    napi_get_value_external(env, opts[0], (void*)&account);
+
+    napi_value config_object = opts[1];
+
+    napi_value nComponentNames;
+    napi_value jkey;
+    napi_value jvalue;
+    napi_valuetype type;
+    char* key;
+    char* value;
+
+    unsigned int length;
+    if (napi_get_property_names(env, config_object, &nComponentNames) != napi_ok ||
+        napi_get_array_length(env, nComponentNames, &length) != napi_ok) {
+      napi_throw_error(env, NULL, "passed config option not an object");
+      return;
+    }
+    for (unsigned int i = 0; i < length; i++) {
+        napi_get_element(env, nComponentNames, i, &jkey);
+        napi_get_property(env, config_object, jkey, &jvalue);
+        napi_typeof(env, jvalue, &type);
+        key = napi_help_strfromval(env, jkey);
+        switch (type)
+        {
+            case napi_string:
+                key = napi_help_strfromval(env, jkey);
+                value = napi_help_strfromval(env, jvalue);
+                if (strcmp(key, "password") == 0) {
+                    purple_account_set_password(account, value);
+                } else if (strcmp(key, "username") == 0) {
+                    purple_account_set_username(account, value);
+                } else {
+                    purple_account_set_string(account, key, value);
+                }
+                free(value);
+                break;
+            case napi_bigint:
+                key = napi_help_strfromval(env, jkey);
+                int value;
+                // Technically this could be larger, but it's highly unlikely we'd need larger.
+                if (napi_get_value_int32(env, jvalue, &value) == napi_ok) {
+                    purple_account_set_int(account, key, value);
+                    free(value);
+                } else {
+                    napi_throw_error(env, NULL, "Could not cooerce bitint value into int32");
+                }
+                break;
+            case napi_boolean:
+                key = napi_help_strfromval(env, jkey);
+                gboolean value;
+                if (napi_get_value_bool(env, jvalue, &value) == napi_ok) {
+                    purple_account_set_bool(account, key, value);
+                    free(value);
+                } else {
+                    napi_throw_error(env, NULL, "Could not cooerce JS boolean value into boolean");
+                }
+                break;
+            default:
+                char error[] = "Cannot handle type for ";
+                strcat(error, key);
+                napi_throw_error(env, NULL, error);
+                break;
+        }
+        free(key);
+    }
+}
 
 napi_value _purple_accounts_find(napi_env env, napi_callback_info info) {
     napi_value n_out;
