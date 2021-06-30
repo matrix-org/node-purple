@@ -1,5 +1,61 @@
 #include "b_accounts.h"
 
+// TODO: Taken from libpurple/account.c
+typedef struct
+{
+	PurplePrefType type;
+
+	char *ui;
+
+	union
+	{
+		int integer;
+		char *string;
+		gboolean boolean;
+
+	} value;
+
+} PurpleAccountSetting;
+
+napi_status account_settings_to_object(napi_env env, napi_value value, GHashTable *hashTable) {
+    napi_status status = napi_generic_failure;
+    GHashTableIter iter;
+    gpointer key, val;
+    napi_value jkey, jvalue;
+
+    g_hash_table_iter_init (&iter, hashTable);
+    struct proto_chat_entry *pce;
+    while (g_hash_table_iter_next (&iter, &key, &val))
+    {
+        char* skey = (char*)key;
+        PurpleAccountSetting* sval = (PurpleAccountSetting*) val;
+
+        if (sval->type == PURPLE_PREF_STRING) {
+            printf("sValue: %s\n", sval->value.string);
+            status = napi_create_string_utf8(env, sval->value.string, NAPI_AUTO_LENGTH, &jvalue);
+            if (status != napi_ok) return status;
+        } else if (sval->type == PURPLE_PREF_BOOLEAN) {
+            printf("bValue: %i\n", sval->value.boolean);
+            status = napi_get_boolean(env, sval->value.boolean, &jvalue);
+            if (status != napi_ok) return status;
+        } else if (sval->type == PURPLE_PREF_INT) {
+            printf("iValue: %i\n", sval->value.integer);
+            status = napi_create_int32(env, sval->value.integer, &jvalue);
+            if (status != napi_ok) return status;
+        } else {
+            printf("Undefined");
+            status = napi_get_undefined(env, &jvalue);
+            if (status != napi_ok) return status;
+        }
+
+        printf("Set: %s\n", skey);
+        status = napi_create_string_utf8(env, skey, NAPI_AUTO_LENGTH, &jkey);
+        if (status != napi_ok) return status;
+        status = napi_set_property(env, value, jkey, jvalue);
+        if (status != napi_ok) return status;
+    }
+}
+
 napi_value nprpl_account_create(napi_env env, PurpleAccount *acct){
     napi_value obj;
     napi_value value;
@@ -27,6 +83,12 @@ napi_value nprpl_account_create(napi_env env, PurpleAccount *acct){
     if (acct->buddy_icon_path != NULL) {
         napi_create_string_utf8(env, acct->buddy_icon_path, NAPI_AUTO_LENGTH, &value);
         napi_set_named_property(env, obj, "buddy_icon_path", value);
+    }
+    /* settings */
+    if (acct->settings != NULL) {
+        napi_create_object(env, &value);
+        account_settings_to_object(env, value, acct->settings);
+        napi_set_named_property(env, obj, "settings", value);
     }
     /* protocol_id */
     napi_create_string_utf8(env, acct->protocol_id, NAPI_AUTO_LENGTH, &value);
@@ -152,7 +214,7 @@ napi_value _purple_account_configure(napi_env env, napi_callback_info info) {
         napi_get_property(env, config_object, jkey, &jvalue);
         napi_typeof(env, jvalue, &type);
         key = napi_help_strfromval(env, jkey);
-        char* error;
+        char error[256];
         switch (type)
         {
             case napi_string:
@@ -165,7 +227,6 @@ napi_value _purple_account_configure(napi_env env, napi_callback_info info) {
                 } else {
                     purple_account_set_string(account, key, svalue);
                 }
-                free(svalue);
                 break;
             case napi_bigint:
                 key = napi_help_strfromval(env, jkey);
@@ -173,7 +234,6 @@ napi_value _purple_account_configure(napi_env env, napi_callback_info info) {
                 // Technically this could be larger, but it's highly unlikely we'd need larger.
                 if (napi_get_value_int32(env, jvalue, &ivalue) == napi_ok) {
                     purple_account_set_int(account, key, ivalue);
-                    free(ivalue);
                 } else {
                     napi_throw_error(env, NULL, "Could not cooerce bitint value into int32");
                 }
@@ -183,7 +243,6 @@ napi_value _purple_account_configure(napi_env env, napi_callback_info info) {
                 gboolean bvalue;
                 if (napi_get_value_bool(env, jvalue, &bvalue) == napi_ok) {
                     purple_account_set_bool(account, key, bvalue);
-                    free(bvalue);
                 } else {
                     napi_throw_error(env, NULL, "Could not cooerce JS boolean value into boolean");
                 }
@@ -220,6 +279,22 @@ napi_value _purple_accounts_find(napi_env env, napi_callback_info info) {
     free(prpl);
 
     return n_out;
+}
+
+napi_value _purple_accounts_get_all(napi_env env, napi_callback_info info) {
+    napi_value account_array;
+    napi_create_array(env, &account_array);
+    GList* accounts = purple_accounts_get_all();
+    GList* l;
+    uint32_t i = 0;
+    for (l = accounts; l != NULL; l = l->next)
+    {
+        PurpleAccount *account = (PurpleAccount*)l->data;
+        napi_value obj = nprpl_account_create(env, account);
+        napi_set_element(env, account_array, i, obj);
+        i++;
+    }
+    return account_array;
 }
 
 napi_value _purple_accounts_get_enabled(napi_env env, napi_callback_info info) {
@@ -338,6 +413,9 @@ void accounts_bind_node(napi_env env, napi_value root) {
     napi_create_function(env, "find", NAPI_AUTO_LENGTH, _purple_accounts_find, NULL, &_func);
     napi_set_named_property(env, ns_accounts, "find", _func);
 
+    napi_create_function(env, "get_all", NAPI_AUTO_LENGTH, _purple_accounts_get_all, NULL, &_func);
+    napi_set_named_property(env, ns_accounts, "get_all", _func);
+
     napi_create_function(env, "get_enabled", NAPI_AUTO_LENGTH, _purple_accounts_get_enabled, NULL, &_func);
     napi_set_named_property(env, ns_accounts, "get_enabled", _func);
 
@@ -365,5 +443,5 @@ void accounts_bind_node(napi_env env, napi_value root) {
     napi_create_function(env, "set_status", NAPI_AUTO_LENGTH, _purple_account_set_status, NULL, &_func);
     napi_set_named_property(env, ns_accounts, "set_status", _func);
 
-    napi_set_named_property(env, root, "buddy", ns_accounts);
+    napi_set_named_property(env, root, "accounts", ns_accounts);
 }

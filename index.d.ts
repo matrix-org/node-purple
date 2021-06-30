@@ -22,6 +22,7 @@ export type Account = {
     password?: string;
     user_info?: string;
     buddy_icon_path?: string;
+    settings?: Record<string, string|number|boolean>;
 }
 
 export type Protocol = {
@@ -94,6 +95,10 @@ export class accounts {
      * @throws If the configuration object contains invalid types, or if the handle is invalid.
      */
     static configure(handle: External, config: Record<string, string|boolean|number>);
+    /**
+     * Get all accounts configured on the purple instance.
+     */
+    static get_all(): Account[];
     static find(name: string, pluginId: string): Account;
     static get_enabled(handle: External): boolean;
     static set_enabled(handle: External, enable: boolean);
