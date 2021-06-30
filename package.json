@@ -10,9 +10,18 @@
     "node-gyp": "^8.1.0",
     "node-pre-gyp": "^0.17.0"
   },
+  "devDependencies": {
+    "@types/chai": "^4.2.19",
+    "@types/mocha": "^8.2.2",
+    "chai": "^4.3.4",
+    "mocha": "^9.0.1",
+    "ts-node": "^10.0.0",
+    "typescript": "^4.3.4"
+  },
   "scripts": {
     "rebuild": "node-pre-gyp build",
-    "build": "node-pre-gyp build"
+    "build": "node-pre-gyp build",
+    "test": "mocha --require ts-node/register spec/**/*.spec.ts"
   },
   "binary": {
     "module_name": "module",

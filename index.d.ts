@@ -22,24 +22,24 @@ export type Event = {
 
 export type SetupArgs = {
     debugEnabled: number;
-    userDir: string|undefined;
-    pluginDir: string|undefined;
+    userDir?: string;
+    pluginDir?: string;
 }
 
 export type Account = {
     handle: External;
     username: string;
     protocol_id: string;
-    password: string|undefined;
-    user_info: string|undefined;
-    buddy_icon_path: string|undefined;
+    password?: string;
+    user_info?: string;
+    buddy_icon_path?: string;
 }
 
 export type Protocol = {
     name: string;
     id: string;
-    homepage: string|undefined;
-    summary: string|undefined;
+    homepage?: string;
+    summary?: string;
 }
 
 export type StatusType = {
@@ -52,8 +52,8 @@ export type StatusType = {
 
 export type Buddy = {
      name: string;
-     icon_path: string|undefined;
-     nick: string|undefined;
+     icon_path?: string;
+     nick?: string;
 };
 
 export type Conversation = {
@@ -63,6 +63,9 @@ export type Conversation = {
 
 /* Sub-modules */
 export class core {
+    /**
+     * Get the version of purple in use.
+     */
     static get_version(): string;
     static init();
     static quit();
@@ -73,6 +76,11 @@ export class debug {
 }
 
 export class helper {
+    /**
+     * Configure purple to start without any UI features. A configuration object
+     * should be provided.
+     * @param opts 
+     */
     static setupPurple(opts: SetupArgs);
     static pollEvents(): Event[];
 }
