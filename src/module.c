@@ -63,40 +63,9 @@ napi_value Init(napi_env env, napi_value exports) {
 
   napi_set_named_property(env, exports, "plugins", ns_plugins);
 
-  /* Create accounts */
-  napi_value ns_accounts;
-  napi_create_object(env, &ns_accounts);
-
-  napi_create_function(env, NULL, 0, _purple_accounts_new, NULL, &_func);
-  napi_set_named_property(env, ns_accounts, "new", _func);
-
-  napi_create_function(env, NULL, 0, _purple_accounts_find, NULL, &_func);
-  napi_set_named_property(env, ns_accounts, "find", _func);
-
-  napi_create_function(env, NULL, 0, _purple_accounts_get_enabled, NULL, &_func);
-  napi_set_named_property(env, ns_accounts, "get_enabled", _func);
-
-  napi_create_function(env, NULL, 0, _purple_accounts_set_enabled, NULL, &_func);
-  napi_set_named_property(env, ns_accounts, "set_enabled", _func);
-
-  napi_create_function(env, NULL, 0, _purple_accounts_connect, NULL, &_func);
-  napi_set_named_property(env, ns_accounts, "connect", _func);
-  napi_create_function(env, NULL, 0, _purple_accounts_disconnect, NULL, &_func);
-  napi_set_named_property(env, ns_accounts, "disconnect", _func);
-  napi_create_function(env, NULL, 0, _purple_account_is_connected, NULL, &_func);
-  napi_set_named_property(env, ns_accounts, "is_connected", _func);
-  napi_create_function(env, NULL, 0, _purple_account_is_connecting, NULL, &_func);
-  napi_set_named_property(env, ns_accounts, "is_connecting", _func);
-  napi_create_function(env, NULL, 0, _purple_account_is_disconnected, NULL, &_func);
-  napi_set_named_property(env, ns_accounts, "is_disconnected", _func);
-  napi_create_function(env, NULL, 0, _purple_account_get_status_types, NULL, &_func);
-  napi_set_named_property(env, ns_accounts, "get_status_types", _func);
-  napi_create_function(env, NULL, 0, _purple_account_set_status, NULL, &_func);
-  napi_set_named_property(env, ns_accounts, "set_status", _func);
-
-  napi_set_named_property(env, exports, "accounts", ns_accounts);
 
   // This is the right way to do it :)
+  accounts_bind_node(env, exports);
   messaging_bind_node(env, exports);
   buddy_bind_node(env, exports);
   notify_bind_node(env, exports);

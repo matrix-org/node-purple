@@ -237,3 +237,47 @@ void _purple_account_set_status(napi_env env, napi_callback_info info) {
 
     purple_account_set_status(account, id, active, NULL);
 }
+
+void accounts_bind_node(napi_env env, napi_value root) {
+    napi_value ns_accounts;
+    napi_value _func;
+    napi_create_object(env, &ns_accounts);
+
+    napi_create_function(env, "new", NAPI_AUTO_LENGTH, _purple_accounts_new, NULL, &_func);
+    napi_set_named_property(env, ns_accounts, "new", _func);
+
+    napi_create_function(env, "configure", NAPI_AUTO_LENGTH, _purple_account_configure, NULL, &_func);
+    napi_set_named_property(env, ns_accounts, "configure", _func);
+
+    napi_create_function(env, "find", NAPI_AUTO_LENGTH, _purple_accounts_find, NULL, &_func);
+    napi_set_named_property(env, ns_accounts, "find", _func);
+
+    napi_create_function(env, "get_enabled", NAPI_AUTO_LENGTH, _purple_accounts_get_enabled, NULL, &_func);
+    napi_set_named_property(env, ns_accounts, "get_enabled", _func);
+
+    napi_create_function(env, "set_enabled", NAPI_AUTO_LENGTH, _purple_accounts_set_enabled, NULL, &_func);
+    napi_set_named_property(env, ns_accounts, "set_enabled", _func);
+
+    napi_create_function(env, "connect", NAPI_AUTO_LENGTH, _purple_accounts_connect, NULL, &_func);
+    napi_set_named_property(env, ns_accounts, "connect", _func);
+
+    napi_create_function(env, "disconnect", NAPI_AUTO_LENGTH, _purple_accounts_disconnect, NULL, &_func);
+    napi_set_named_property(env, ns_accounts, "disconnect", _func);
+
+    napi_create_function(env, "is_connected", NAPI_AUTO_LENGTH, _purple_account_is_connected, NULL, &_func);
+    napi_set_named_property(env, ns_accounts, "is_connected", _func);
+
+    napi_create_function(env, "is_connecting", NAPI_AUTO_LENGTH, _purple_account_is_connecting, NULL, &_func);
+    napi_set_named_property(env, ns_accounts, "is_connecting", _func);
+
+    napi_create_function(env, "is_disconnected", NAPI_AUTO_LENGTH, _purple_account_is_disconnected, NULL, &_func);
+    napi_set_named_property(env, ns_accounts, "is_disconnected", _func);
+
+    napi_create_function(env, "get_status_types", NAPI_AUTO_LENGTH, _purple_account_get_status_types, NULL, &_func);
+    napi_set_named_property(env, ns_accounts, "get_status_types", _func);
+
+    napi_create_function(env, "set_status", NAPI_AUTO_LENGTH, _purple_account_set_status, NULL, &_func);
+    napi_set_named_property(env, ns_accounts, "set_status", _func);
+
+    napi_set_named_property(env, root, "buddy", ns_accounts);
+}
