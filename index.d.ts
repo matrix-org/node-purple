@@ -83,6 +83,13 @@ export class plugins {
 
 export class accounts {
     static new(name: string, pluginId: string, password?: string): Account;
+    /**
+     * Configure an account with extra options.
+     * @param handle The account external Handle.
+     * @param config A configuration object. Numbers must be integers
+     * @throws If the configuration object contains invalid types, or if the handle is invalid.
+     */
+    static configure(handle: External, config: Record<string, string|boolean|number>);
     static find(name: string, pluginId: string): Account;
     static get_enabled(handle: External): boolean;
     static set_enabled(handle: External, enable: boolean);
