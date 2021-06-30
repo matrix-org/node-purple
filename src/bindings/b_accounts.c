@@ -140,7 +140,6 @@ napi_value _purple_account_configure(napi_env env, napi_callback_info info) {
     napi_value jvalue;
     napi_valuetype type;
     char* key;
-    char* value;
 
     unsigned int length;
     if (napi_get_property_names(env, config_object, &nComponentNames) != napi_ok ||
@@ -153,44 +152,44 @@ napi_value _purple_account_configure(napi_env env, napi_callback_info info) {
         napi_get_property(env, config_object, jkey, &jvalue);
         napi_typeof(env, jvalue, &type);
         key = napi_help_strfromval(env, jkey);
+        char* error;
         switch (type)
         {
             case napi_string:
                 key = napi_help_strfromval(env, jkey);
-                value = napi_help_strfromval(env, jvalue);
+                char* svalue = napi_help_strfromval(env, jvalue);
                 if (strcmp(key, "password") == 0) {
-                    purple_account_set_password(account, value);
+                    purple_account_set_password(account, svalue);
                 } else if (strcmp(key, "username") == 0) {
-                    purple_account_set_username(account, value);
+                    purple_account_set_username(account, svalue);
                 } else {
-                    purple_account_set_string(account, key, value);
+                    purple_account_set_string(account, key, svalue);
                 }
-                free(value);
+                free(svalue);
                 break;
             case napi_bigint:
                 key = napi_help_strfromval(env, jkey);
-                int value;
+                int ivalue;
                 // Technically this could be larger, but it's highly unlikely we'd need larger.
-                if (napi_get_value_int32(env, jvalue, &value) == napi_ok) {
-                    purple_account_set_int(account, key, value);
-                    free(value);
+                if (napi_get_value_int32(env, jvalue, &ivalue) == napi_ok) {
+                    purple_account_set_int(account, key, ivalue);
+                    free(ivalue);
                 } else {
                     napi_throw_error(env, NULL, "Could not cooerce bitint value into int32");
                 }
                 break;
             case napi_boolean:
                 key = napi_help_strfromval(env, jkey);
-                gboolean value;
-                if (napi_get_value_bool(env, jvalue, &value) == napi_ok) {
-                    purple_account_set_bool(account, key, value);
-                    free(value);
+                gboolean bvalue;
+                if (napi_get_value_bool(env, jvalue, &bvalue) == napi_ok) {
+                    purple_account_set_bool(account, key, bvalue);
+                    free(bvalue);
                 } else {
                     napi_throw_error(env, NULL, "Could not cooerce JS boolean value into boolean");
                 }
                 break;
             default:
-                char error[] = "Cannot handle type for ";
-                strcat(error, key);
+                sprintf(error, "Cannot handle type for %s", key);
                 napi_throw_error(env, NULL, error);
                 break;
         }
