@@ -165,7 +165,7 @@ void _accounts_restore_current_statuses()
         purple_debug_warning("account", "Network not connected; skipping reconnect\n");
         return;
     }*/
-    uint timeout = 0;
+    unsigned timeout = 0;
     for (l = purple_accounts_get_all(); l != NULL; l = l->next)
     {
         account = (PurpleAccount *)l->data;

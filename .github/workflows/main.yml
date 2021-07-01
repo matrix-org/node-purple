@@ -25,4 +25,5 @@ jobs:
       - name: Install node dependencies and build library
         run: npm i
       - name: Run tests
-        run: npm run test
+        # NASTY hack because we can't get libpurple to load.
+        run: LD_PRELOAD=/lib/x86_64-linux-gnu/libpurple.so npm run test

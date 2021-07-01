@@ -10,7 +10,7 @@ export type Event = {
 }
 
 export type SetupArgs = {
-    debugEnabled: number;
+    debugEnabled?: number;
     userDir?: string;
     pluginDir?: string;
 }
