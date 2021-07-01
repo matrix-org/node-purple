@@ -1,17 +1,6 @@
-// Type definitions for [~THE LIBRARY NAME~] [~OPTIONAL VERSION NUMBER~]
-// Project: [~THE PROJECT NAME~]
-// Definitions by: [~YOUR NAME~] <[~A URL FOR YOU~]>
-
-/*~ This is the module template file. You should rename it to index.d.ts
- *~ and place it in a folder with the same name as the module.
- *~ For example, if you were writing a file for "super-greeter", this
- *~ file should be 'super-greeter/index.d.ts'
- */
-
-/*~ If this module is a UMD module that exposes a global variable 'myLib' when
- *~ loaded outside a module loader environment, declare that global here.
- *~ Otherwise, delete this declaration.
- */
+// Type definitions for node-purple
+// Project: Matrix.org
+// Definitions by: Matrix.org CIC <https://matrix.org>
 
 export as namespace libpurple;
 
@@ -21,25 +10,26 @@ export type Event = {
 }
 
 export type SetupArgs = {
-    debugEnabled: number;
-    userDir: string|undefined;
-    pluginDir: string|undefined;
+    debugEnabled?: number;
+    userDir?: string;
+    pluginDir?: string;
 }
 
 export type Account = {
     handle: External;
     username: string;
     protocol_id: string;
-    password: string|undefined;
-    user_info: string|undefined;
-    buddy_icon_path: string|undefined;
+    password?: string;
+    user_info?: string;
+    buddy_icon_path?: string;
+    settings?: Record<string, string|number|boolean>;
 }
 
 export type Protocol = {
     name: string;
     id: string;
-    homepage: string|undefined;
-    summary: string|undefined;
+    homepage?: string;
+    summary?: string;
 }
 
 export type StatusType = {
@@ -52,8 +42,8 @@ export type StatusType = {
 
 export type Buddy = {
      name: string;
-     icon_path: string|undefined;
-     nick: string|undefined;
+     icon_path?: string;
+     nick?: string;
 };
 
 export type Conversation = {
@@ -63,8 +53,18 @@ export type Conversation = {
 
 /* Sub-modules */
 export class core {
+    /**
+     * Get the version of purple in use.
+     */
     static get_version(): string;
+    /**
+     * Start the purple core.
+     * @deprecated Use `helper.setupPurple` which does this and more.
+     */
     static init();
+    /**
+     * Stps the purple core.
+     */
     static quit();
 }
 
@@ -73,6 +73,11 @@ export class debug {
 }
 
 export class helper {
+    /**
+     * Configure purple to start without any UI features. A configuration object
+     * should be provided.
+     * @param opts 
+     */
     static setupPurple(opts: SetupArgs);
     static pollEvents(): Event[];
 }
@@ -83,6 +88,17 @@ export class plugins {
 
 export class accounts {
     static new(name: string, pluginId: string, password?: string): Account;
+    /**
+     * Configure an account with extra options.
+     * @param handle The account external Handle.
+     * @param config A configuration object. Numbers must be integers
+     * @throws If the configuration object contains invalid types, or if the handle is invalid.
+     */
+    static configure(handle: External, config: Record<string, string|boolean|number>);
+    /**
+     * Get all accounts configured on the purple instance.
+     */
+    static get_all(): Account[];
     static find(name: string, pluginId: string): Account;
     static get_enabled(handle: External): boolean;
     static set_enabled(handle: External, enable: boolean);
