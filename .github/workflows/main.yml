@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: ${{ matrix.node_version }}
       - name: Install node dependencies and build library
-        run: npm i
+        run: npm ci
       - name: Run tests
         # NASTY hack because we can't get libpurple to load.
         run: LD_PRELOAD=/lib/x86_64-linux-gnu/libpurple.so npm run test
