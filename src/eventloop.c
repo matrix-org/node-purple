@@ -297,12 +297,15 @@ static PurpleEventLoopUiOps glib_eventloops =
 
 /** End of the eventloop functions. **/
 PurpleEventLoopUiOps* eventLoop_get(napi_env* env) {
-    uv_loop_t* loop;
-    if (evLoopState.loop == NULL && napi_get_uv_event_loop(*env, &loop) != napi_ok){
-        napi_throw_error(*env, NULL, "Could not get UV loop");
+    if (evLoopState.loop == NULL){
+        // Initiate
+        if (napi_get_uv_event_loop(*env, &evLoopState.loop) != napi_ok) {
+            napi_throw_error(*env, NULL, "Could not get UV loop");
+            return NULL;
+        }
+        evLoopState.inputId = 0;
+        evLoopState.timerId = 0;
     }
-    //evLoopState.inputId = 1;
-    evLoopState.loop = loop;
     return &glib_eventloops;
 }
 
