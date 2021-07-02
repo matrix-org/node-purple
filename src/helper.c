@@ -9,17 +9,11 @@ typedef struct {
   char* pluginDir;
 } s_setupPurple;
 
-void getSetupPurpleStruct(napi_env env, napi_callback_info info, s_setupPurple *o) {
+void getSetupPurpleStruct(napi_env env, napi_callback_info info, s_setupPurple* setupOpts) {
     size_t argc = 1;
     napi_value opts;
-    s_setupPurple stemp;
     napi_valuetype type;
     napi_value value;
-
-    stemp.userDir = NULL;
-    stemp.pluginDir = NULL;
-
-
     napi_get_cb_info(env, info, &argc, &opts, NULL, NULL);
     if (argc == 0) {
         THROW(env, NULL, "setupPurple takes a options object");
@@ -27,25 +21,26 @@ void getSetupPurpleStruct(napi_env env, napi_callback_info info, s_setupPurple *
 
     /* debugEnabled */
     if (getValueFromObject(env, opts, "debugEnabled", &type, &value)) {
-        stemp.debugEnabled = napi_get_value_int32(env, value, &stemp.debugEnabled);
+        napi_get_value_int32(env, value, &setupOpts->debugEnabled);
     }
 
-    if (napi_ok != napi_get_named_property(env, opts, "eventFunc", &stemp.eventFunc)) {
+    if (napi_ok != napi_get_named_property(env, opts, "eventFunc", &setupOpts->eventFunc)) {
         THROW(env, NULL, "setupPurple expects eventFunc to be defined");
     }
 
     /* userDir */
     if (getValueFromObject(env, opts, "userDir", &type, &value) && type == napi_string) {
-        stemp.userDir = napi_help_strfromval(env, value);
+        setupOpts->userDir = napi_help_strfromval(env, value);
+    } else {
+        setupOpts->userDir = NULL;
     }
 
     /* pluginDir */
     if (getValueFromObject(env, opts, "pluginDir", &type, &value) && type == napi_string) {
-        stemp.pluginDir = napi_help_strfromval(env, value);
+        setupOpts->pluginDir = napi_help_strfromval(env, value);
+    } else {
+        setupOpts->pluginDir = NULL;
     }
-
-    // FIXME returns a pointer to a stack value!?
-    *o = stemp;
 }
 
 napi_value pollEvents(napi_env env, napi_callback_info info) {
@@ -215,6 +210,7 @@ napi_value setupPurple(napi_env env, napi_callback_info info) {
     purple_eventloop_set_ui_ops(evLoopOps);
 
     getSetupPurpleStruct(env, info, &opts);
+    purple_debug_set_enabled(opts.debugEnabled);
     if (opts.userDir != NULL) {
         purple_util_set_user_dir(opts.userDir);
     }
@@ -223,7 +219,6 @@ napi_value setupPurple(napi_env env, napi_callback_info info) {
         purple_plugins_add_search_path(opts.pluginDir);
     }
 
-    purple_debug_set_enabled(opts.debugEnabled);
 
     // FIXME that's uiopts passed as a PurpleConversation, with actual Opts being NULL: what's the idea here?
     purple_conversation_set_ui_ops(&uiopts, NULL);
