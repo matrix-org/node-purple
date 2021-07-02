@@ -151,8 +151,8 @@ gboolean timeout_remove(guint handle) {
         return false;
     }
     uv_timer_stop(timer->handle);
-    if (!uv_is_closing(timer->handle)) {
-        uv_close(timer->handle, on_timer_close_complete);
+    if (!uv_is_closing((uv_handle_t*)timer->handle)) {
+        uv_close((uv_handle_t*)timer->handle, on_timer_close_complete);
     }
     return true;
 }
@@ -317,7 +317,7 @@ void call_callback(uv_timer_t* handle) {
     }
     gboolean res = timer->function(timer->data);
     // If the function succeeds, continue
-    if (!res && !uv_is_closing(timer->handle)) {
+    if (!res && !uv_is_closing((uv_handle_t *)timer->handle)) {
         uv_close((uv_handle_t *)timer->handle, on_timer_close_complete);
         return;
     }
