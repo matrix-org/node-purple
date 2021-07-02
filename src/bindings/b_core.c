@@ -9,7 +9,7 @@ napi_value _purple_core_get_version(napi_env env, napi_callback_info info) {
   status = napi_create_string_utf8(env, version, NAPI_AUTO_LENGTH, &node_version);
 
   if (status != napi_ok) {
-    napi_throw_error(env, NULL, "Unable to create return value");
+    THROW(env, NULL, "Unable to create return value", NULL);
   }
 
   return node_version;
@@ -21,7 +21,7 @@ napi_value _purple_core_init(napi_env env, napi_callback_info info) {
   result = purple_core_init("matrix-bridge");
 
   if (napi_get_boolean(env, result, &n_result) != napi_ok) {
-    napi_throw_error(env, NULL, "Unable to create return value");
+    THROW(env, NULL, "Unable to create return value", NULL);
   }
 
   return n_result;

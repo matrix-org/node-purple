@@ -1,4 +1,6 @@
 #include "eventloop.h"
+#include "helper.h"
+
 /*
  Horrible stiching together of libuv's loop for purple.
  This works by getting the node env's loop and adding our own
@@ -299,7 +301,7 @@ static PurpleEventLoopUiOps glib_eventloops =
 PurpleEventLoopUiOps* eventLoop_get(napi_env* env) {
     uv_loop_t* loop;
     if (evLoopState.loop == NULL && napi_get_uv_event_loop(*env, &loop) != napi_ok){
-        napi_throw_error(*env, NULL, "Could not get UV loop");
+        THROW(*env, NULL, "Could not get UV loop", NULL);
     }
     //evLoopState.inputId = 1;
     evLoopState.loop = loop;
