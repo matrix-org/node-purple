@@ -1,4 +1,5 @@
 #include "b_notify.h"
+#include "helper.h"
 
 napi_value get_user_info(napi_env env, napi_callback_info info) {
     PurpleAccount *account;
@@ -6,7 +7,7 @@ napi_value get_user_info(napi_env env, napi_callback_info info) {
     napi_value opt[2];
     napi_get_cb_info(env, info, &argc, opt, NULL, NULL);
     if (argc < 2) {
-      napi_throw_error(env, NULL, "takes two arguments");
+        THROW(env, NULL, "takes two arguments", NULL);
     }
     napi_get_value_external(env, opt[0], (void*)&account);
     PurpleConnection* conn = purple_account_get_connection(account);

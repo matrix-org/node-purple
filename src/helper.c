@@ -22,8 +22,7 @@ void getSetupPurpleStruct(napi_env env, napi_callback_info info, s_setupPurple *
 
     napi_get_cb_info(env, info, &argc, &opts, NULL, NULL);
     if (argc == 0) {
-        napi_throw_error(env, NULL, "setupPurple takes a options object");
-        return;
+        THROW(env, NULL, "setupPurple takes a options object");
     }
 
     /* debugEnabled */
@@ -32,8 +31,7 @@ void getSetupPurpleStruct(napi_env env, napi_callback_info info, s_setupPurple *
     }
 
     if (napi_ok != napi_get_named_property(env, opts, "eventFunc", &stemp.eventFunc)) {
-        napi_throw_error(env, NULL, "setupPurple expects eventFunc to be defined");
-        return;
+        THROW(env, NULL, "setupPurple expects eventFunc to be defined");
     }
 
     /* userDir */
@@ -246,26 +244,22 @@ bool getValueFromObject(napi_env env, napi_value object, char* propStr, napi_val
     bool hasProperty;
     status = napi_create_string_utf8(env, propStr, NAPI_AUTO_LENGTH, &propName);
     if (status != napi_ok) {
-        napi_throw_error(env, NULL, "Could not get value from object: Could not create string");
-        return false;
+        THROW(env, NULL, "Could not get value from object: Could not create string", false);
     }
     status = napi_has_property(env, object, propName, &hasProperty);
     if (status != napi_ok) {
-        napi_throw_error(env, NULL, "Could not get value from object: Could not get property");
-        return false;
+        THROW(env, NULL, "Could not get value from object: Could not get property", false);
     }
     if (!hasProperty) {
         return false;
     }
     status = napi_get_property(env, object, propName, value);
     if (status != napi_ok) {
-        napi_throw_error(env, NULL, "Could not get value from object: Could not get property");
-        return false;
+        THROW(env, NULL, "Could not get value from object: Could not get property", false);
     }
     status = napi_typeof(env, *value, type);
     if (status != napi_ok) {
-        napi_throw_error(env, NULL, "Could not get value from object: Could not get type");
-        return false;
+        THROW(env, NULL, "Could not get value from object: Could not get type", false);
     }
     return true;
 }
