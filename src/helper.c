@@ -11,7 +11,6 @@ typedef struct {
 
 void getSetupPurpleStruct(napi_env env, napi_callback_info info, s_setupPurple *o) {
     size_t argc = 1;
-    napi_status status;
     napi_value opts;
     s_setupPurple stemp;
     napi_valuetype type;
@@ -23,26 +22,28 @@ void getSetupPurpleStruct(napi_env env, napi_callback_info info, s_setupPurple *
 
     napi_get_cb_info(env, info, &argc, &opts, NULL, NULL);
     if (argc == 0) {
-      napi_throw_error(env, NULL, "setupPurple takes a options object");
+        napi_throw_error(env, NULL, "setupPurple takes a options object");
+        return;
     }
 
     /* debugEnabled */
     if (getValueFromObject(env, opts, "debugEnabled", &type, &value)) {
-      status = napi_get_value_int32(env, value, &stemp.debugEnabled);
+        stemp.debugEnabled = napi_get_value_int32(env, value, &stemp.debugEnabled);
     }
 
     if (napi_ok != napi_get_named_property(env, opts, "eventFunc", &stemp.eventFunc)) {
         napi_throw_error(env, NULL, "setupPurple expects eventFunc to be defined");
+        return;
     }
 
     /* userDir */
     if (getValueFromObject(env, opts, "userDir", &type, &value) && type == napi_string) {
-      stemp.userDir = napi_help_strfromval(env, value);
+        stemp.userDir = napi_help_strfromval(env, value);
     }
 
     /* pluginDir */
     if (getValueFromObject(env, opts, "pluginDir", &type, &value) && type == napi_string) {
-      stemp.pluginDir = napi_help_strfromval(env, value);
+        stemp.pluginDir = napi_help_strfromval(env, value);
     }
 
     *o = stemp;
@@ -172,7 +173,7 @@ void _accounts_restore_current_statuses()
         if (purple_account_get_enabled(account, purple_core_get_ui()) &&
             (purple_presence_is_online(account->presence)))
         {
-            timeout_add(timeout, (GSourceFunc)purple_account_connect, account);
+            timeout_add(timeout, G_SOURCE_FUNC(purple_account_connect), account);
             timeout += 100;
         }
     }
@@ -213,15 +214,16 @@ napi_value setupPurple(napi_env env, napi_callback_info info) {
 
     getSetupPurpleStruct(env, info, &opts);
     if (opts.userDir != NULL) {
-      purple_util_set_user_dir(opts.userDir);
+        purple_util_set_user_dir(opts.userDir);
     }
 
     if (opts.pluginDir != NULL) {
-      purple_plugins_add_search_path(opts.pluginDir);
+        purple_plugins_add_search_path(opts.pluginDir);
     }
 
     purple_debug_set_enabled(opts.debugEnabled);
 
+    // FIXME that's uiopts passed as a PurpleConversation, with actual Opts being NULL: what's the idea here?
     purple_conversation_set_ui_ops(&uiopts, NULL);
     purple_prefs_load();
     purple_set_blist(purple_blist_new());
@@ -239,27 +241,31 @@ napi_value setupPurple(napi_env env, napi_callback_info info) {
 /* N-API helpers */
 
 bool getValueFromObject(napi_env env, napi_value object, char* propStr, napi_valuetype *type, napi_value *value) {
-  napi_status status;
-  napi_value propName;
-  bool hasProperty;
-  status = napi_create_string_utf8(env, propStr, NAPI_AUTO_LENGTH, &propName);
-  if (status != napi_ok) {
-    napi_throw_error(env, NULL, "Could not get value from object: Could not create string");
-  }
-  status = napi_has_property(env, object, propName, &hasProperty);
-  if (status != napi_ok) {
-    napi_throw_error(env, NULL, "Could not get value from object: Could not get property");
-  }
-  if (!hasProperty) {
-    return false;
-  }
-  status = napi_get_property(env, object, propName, value);
-  if (status != napi_ok) {
-    napi_throw_error(env, NULL, "Could not get value from object: Could not get property");
-  }
-  status = napi_typeof(env, *value, type);
-  if (status != napi_ok) {
-    napi_throw_error(env, NULL, "Could not get value from object: Could not get type");
-  }
-  return true;
+    napi_status status;
+    napi_value propName;
+    bool hasProperty;
+    status = napi_create_string_utf8(env, propStr, NAPI_AUTO_LENGTH, &propName);
+    if (status != napi_ok) {
+        napi_throw_error(env, NULL, "Could not get value from object: Could not create string");
+        return false;
+    }
+    status = napi_has_property(env, object, propName, &hasProperty);
+    if (status != napi_ok) {
+        napi_throw_error(env, NULL, "Could not get value from object: Could not get property");
+        return false;
+    }
+    if (!hasProperty) {
+        return false;
+    }
+    status = napi_get_property(env, object, propName, value);
+    if (status != napi_ok) {
+        napi_throw_error(env, NULL, "Could not get value from object: Could not get property");
+        return false;
+    }
+    status = napi_typeof(env, *value, type);
+    if (status != napi_ok) {
+        napi_throw_error(env, NULL, "Could not get value from object: Could not get type");
+        return false;
+    }
+    return true;
 }

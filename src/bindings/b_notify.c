@@ -1,10 +1,9 @@
 #include "b_notify.h"
 
-void get_user_info(napi_env env, napi_callback_info info) {
+napi_value get_user_info(napi_env env, napi_callback_info info) {
     PurpleAccount *account;
     size_t argc = 2;
     napi_value opt[2];
-    napi_value n_out;
     napi_get_cb_info(env, info, &argc, opt, NULL, NULL);
     if (argc < 2) {
       napi_throw_error(env, NULL, "takes two arguments");
@@ -13,6 +12,8 @@ void get_user_info(napi_env env, napi_callback_info info) {
     PurpleConnection* conn = purple_account_get_connection(account);
     char* who = napi_help_strfromval(env, opt[1]);
     serv_get_info(conn, who);
+
+    return NULL;
 }
 
 void notify_bind_node(napi_env env,napi_value root) {
