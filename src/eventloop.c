@@ -162,6 +162,7 @@ gboolean timeout_remove(guint handle) {
 * @see purple_input_remove
 */
 gboolean input_remove (guint handle) {
+    printf("input_remove: handle %i\n", handle);
     GList* timerListItem = g_list_find_custom(evLoopState.inputs, &handle, findInputById);
     if (timerListItem == NULL) {
         // We don't have an input handler for that FD.
@@ -182,8 +183,12 @@ gboolean input_remove (guint handle) {
 
 void handle_input(uv_poll_t* handle, int status, int events) {
     GList *l;
-    if (status != 0) {
+    if (status < 0) {
+        printf("handle_input error status %i %s\n", status, uv_strerror(status));
         // XXX: Do we need to do anything if the status is not ok?
+    } else if (status > 0) {
+        // Unexpected positive status
+        printf("handle_input unexpected positive status %i\n");
     }
     int closedFD = -1;
     // XXX: This is rather dreadful, but supposedly fast enough for
@@ -194,16 +199,21 @@ void handle_input(uv_poll_t* handle, int status, int events) {
         if (input->handle != handle) {
             continue;
         }
-        if (input->operations & 1 && events & 1) {
+        if ((input->operations & 1) && (events & 1)) {
+            printf("read for FD %i ID %i\n", input->fd, input->id);
             // Read
             input->func(input->user_data, input->fd, events);
+            printf("read complete\n");
         }
-        if (input->operations & 2 && events & 2) {
+        if ((input->operations & 2) && (events & 2)) {
+            printf("write for FD %i ID %i\n", input->fd);
             // Write
             input->func(input->user_data, input->fd, events);
+            printf("write complete\n");
         }
 
         if (fcntl(input->fd, F_GETFL) < 0 && errno == EBADF) {
+            printf("FD %i closed, cleaning up\n", input->fd);
             closedFD = input->fd;
             // FD is closed, invoke the cleanup.
             // file descriptor is invalid or closed
