@@ -1,6 +1,7 @@
 #include "messaging.h"
+#include "helper.h"
 
-void messaging_sendIM(napi_env env, napi_callback_info info) {
+napi_value messaging_sendIM(napi_env env, napi_callback_info info) {
     PurpleAccount* account;
     size_t argc = 3;
     napi_value opts[3];
@@ -9,16 +10,14 @@ void messaging_sendIM(napi_env env, napi_callback_info info) {
 
     napi_get_cb_info(env, info, &argc, opts, NULL, NULL);
     if (argc < 3) {
-        napi_throw_error(env, NULL, "sendIM takes three arguments");
-        return;
+        THROW(env, NULL, "sendIM takes three arguments", NULL);
     }
 
     // Get the account
     napi_get_value_external(env, opts[0], (void*)&account);
 
     if (account == NULL) {
-        napi_throw_error(env, NULL, "account is null");
-        return;
+        THROW(env, NULL, "account is null", NULL);
     }
 
     name = napi_help_strfromval(env, opts[1]);
@@ -41,9 +40,11 @@ void messaging_sendIM(napi_env env, napi_callback_info info) {
     purple_conv_im_send(convIm, body);
     free(name);
     free(body);
+
+    return NULL;
 }
 
-void messaging_sendChat(napi_env env, napi_callback_info info) {
+napi_value messaging_sendChat(napi_env env, napi_callback_info info) {
     PurpleAccount* account;
     size_t argc = 3;
     napi_value opts[3];
@@ -52,16 +53,14 @@ void messaging_sendChat(napi_env env, napi_callback_info info) {
 
     napi_get_cb_info(env, info, &argc, opts, NULL, NULL);
     if (argc < 3) {
-        napi_throw_error(env, NULL, "sendIM takes three arguments");
-        return;
+        THROW(env, NULL, "sendIM takes three arguments", NULL);
     }
 
     // Get the account
     napi_get_value_external(env, opts[0], (void*)&account);
 
     if (account == NULL) {
-        napi_throw_error(env, NULL, "account is null");
-        return;
+        THROW(env, NULL, "account is null", NULL);
     }
 
     name = napi_help_strfromval(env, opts[1]);
@@ -73,8 +72,7 @@ void messaging_sendChat(napi_env env, napi_callback_info info) {
     );
 
     if (conv == NULL) {
-        napi_throw_error(env, NULL, "conversation not found");
-        return;
+        THROW(env, NULL, "conversation not found", NULL);
     }
     // Get the chat
     PurpleConvChat* convChat = purple_conversation_get_chat_data(conv);
@@ -84,6 +82,8 @@ void messaging_sendChat(napi_env env, napi_callback_info info) {
     purple_conv_chat_send(convChat, body);
     free(name);
     free(body);
+
+    return NULL;
 }
 
 napi_value messaging_chatParams(napi_env env, napi_callback_info info) {
@@ -98,8 +98,7 @@ napi_value messaging_chatParams(napi_env env, napi_callback_info info) {
 
     napi_get_cb_info(env, info, &argc, opts, NULL, NULL);
     if (argc < 2) {
-      napi_throw_error(env, NULL, "chatParams takes two arguments");
-      return;
+      THROW(env, NULL, "chatParams takes two arguments", NULL);
     }
 
     // Get the account
@@ -134,11 +133,11 @@ napi_value messaging_chatParams(napi_env env, napi_callback_info info) {
         napi_set_element(env, property_array, i, obj);
         i++;
     }
+
     return property_array;
+}
 
- }
-
-void messaging_joinChat(napi_env env, napi_callback_info info) {
+napi_value messaging_joinChat(napi_env env, napi_callback_info info) {
     PurpleAccount* account;
     PurpleConnection* conn;
     size_t argc = 2;
@@ -146,8 +145,7 @@ void messaging_joinChat(napi_env env, napi_callback_info info) {
 
     napi_get_cb_info(env, info, &argc, opts, NULL, NULL);
     if (argc < 2) {
-      napi_throw_error(env, NULL, "joinChat takes two arguments");
-      return;
+      THROW(env, NULL, "joinChat takes two arguments", NULL);
     }
 
     // Get the account
@@ -182,10 +180,12 @@ void messaging_joinChat(napi_env env, napi_callback_info info) {
     }
     serv_join_chat(conn, components);
     g_hash_table_remove_all(components);
+
+    return NULL;
 }
 
-void messaging_rejectChat(napi_env env, napi_callback_info info) {
-
+napi_value messaging_rejectChat(napi_env env, napi_callback_info info) {
+    return NULL;
 }
 
 napi_value messaging_getBuddyFromChat(napi_env env, napi_callback_info info) {
@@ -198,13 +198,13 @@ napi_value messaging_getBuddyFromChat(napi_env env, napi_callback_info info) {
 
     napi_get_cb_info(env, info, &argc, opts, NULL, NULL);
     if (argc < 2) {
-      napi_throw_error(env, NULL, "getBuddyFromConv takes two arguments");
-      return;
+        THROW(env, NULL, "getBuddyFromConv takes two arguments", NULL);
     }
     napi_get_value_external(env, opts[0], (void*)&conv);
     type = purple_conversation_get_type(conv);
     if (type == PURPLE_CONV_TYPE_CHAT) {
         PurpleConvChat* chat = purple_conversation_get_chat_data(conv);
+        // TODO: get the result out of that and return it?
     } else {
         napi_get_undefined(env, &res);
     }
@@ -221,17 +221,16 @@ napi_value messaging_getNickForChat(napi_env env, napi_callback_info info) {
 
     napi_get_cb_info(env, info, &argc, opts, NULL, NULL);
     if (argc < 1) {
-      napi_throw_error(env, NULL, "getNickForChat takes one argument");
-      return;
+        THROW(env, NULL, "getNickForChat takes one argument", NULL);
     }
     napi_get_value_external(env, opts[0], (void*)&conv);
     type = purple_conversation_get_type(conv);
     if (type == PURPLE_CONV_TYPE_CHAT) {
         PurpleConvChat* chat = purple_conversation_get_chat_data(conv);
-        char* nick = purple_conv_chat_get_nick(chat);
+        const char* nick = purple_conv_chat_get_nick(chat);
         napi_create_string_utf8(env, nick, NAPI_AUTO_LENGTH, &res);
     } else {
-        napi_throw_error(env, NULL, "conversation was not PURPLE_CONV_TYPE_CHAT");
+        THROW(env, NULL, "conversation was not PURPLE_CONV_TYPE_CHAT", NULL);
     }
     return res;
 }
@@ -244,21 +243,19 @@ napi_value messaging_findConversation(napi_env env, napi_callback_info info) {
 
     napi_get_cb_info(env, info, &argc, opts, NULL, NULL);
     if (argc < 2) {
-        napi_throw_error(env, NULL, "findConversation takes two arguments");
-        return;
+        THROW(env, NULL, "findConversation takes two arguments", NULL);
     }
 
     // Get the account
     napi_get_value_external(env, opts[0], (void*)&account);
 
     if (account == NULL) {
-        napi_throw_error(env, NULL, "account is null");
-        return;
+        THROW(env, NULL, "account is null", NULL);
     }
 
     name = napi_help_strfromval(env, opts[1]);
 
-    const PurpleConversation* conv = purple_find_conversation_with_account(
+    PurpleConversation* conv = purple_find_conversation_with_account(
         PURPLE_CONV_TYPE_ANY,
         name,
         account
@@ -266,8 +263,7 @@ napi_value messaging_findConversation(napi_env env, napi_callback_info info) {
 
     free(name);
     if (conv == NULL) {
-        napi_throw_error(env, NULL, "conversation not found");
-        return;
+        THROW(env, NULL, "conversation not found", NULL);
     }
 
     return nprpl_conv_create(env, conv);

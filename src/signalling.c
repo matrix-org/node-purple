@@ -102,7 +102,7 @@ napi_value getJsObjectForSignalEvent(napi_env env, s_signalEventData *eventData)
             }
             napi_set_property(env, evtObj, jkey, jvalue);
         }
-        g_slist_free_full(msgData.items, free);
+        g_list_free_full(msgData.items, free);
 
         napi_value acct = nprpl_account_create(env, msgData.account);
         napi_set_named_property(env, evtObj, "account", acct);
@@ -145,7 +145,6 @@ napi_value getJsObjectForSignalEvent(napi_env env, s_signalEventData *eventData)
         napi_value jkey, jvalue;
 
         g_hash_table_iter_init (&iter, msgData.inviteProps);
-        struct proto_chat_entry *pce;
         while (g_hash_table_iter_next (&iter, &key, &val))
         {
             char* skey = (char*)key;
@@ -305,15 +304,15 @@ void handleUserInfo(PurpleConnection *gc, const char *who, PurpleNotifyUserInfo 
         }
         dest = malloc(sizeof(e_UserInfoResponseItem));
 
-        char* label = purple_notify_user_info_entry_get_label(src);
+        const char* label = purple_notify_user_info_entry_get_label(src);
         dest->label = malloc(strlen(label) + 1);
         strcpy(dest->label, label);
 
-        char* value = purple_notify_user_info_entry_get_value(src);
+        const char* value = purple_notify_user_info_entry_get_value(src);
         dest->value = malloc(strlen(value) + 1);
         strcpy(dest->value, value);
 
-        msgData->items = g_slist_append(msgData->items, dest);
+        msgData->items = g_list_append(msgData->items, dest);
     }
     msgData->who = malloc(strlen(who) + 1);
     msgData->account = purple_connection_get_account(gc);
