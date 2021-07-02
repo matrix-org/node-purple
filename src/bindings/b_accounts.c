@@ -146,7 +146,7 @@ PurpleAccount* __getacct(napi_env env, napi_callback_info info) {
 napi_value _purple_accounts_new(napi_env env, napi_callback_info info) {
     napi_value n_out;
     size_t argc = 3;
-    napi_value opts[2];
+    napi_value opts[argc];
 
     napi_get_cb_info(env, info, &argc, opts, NULL, NULL);
     if (argc == 0) {
