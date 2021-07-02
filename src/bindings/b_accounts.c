@@ -237,7 +237,7 @@ napi_value _purple_account_configure(napi_env env, napi_callback_info info) {
                 break;
             case napi_boolean:
                 key = napi_help_strfromval(env, jkey);
-                gboolean bvalue;
+                bool bvalue;
                 if (napi_get_value_bool(env, jvalue, &bvalue) == napi_ok) {
                     purple_account_set_bool(account, key, bvalue);
                 } else {
