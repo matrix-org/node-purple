@@ -282,10 +282,10 @@ void handleAccountConnectionError(PurpleAccount *account, PurpleConnectionError 
     signalling_push(ev);
 }
 
-void handleUserInfo(PurpleConnection *gc, const char *who, PurpleNotifyUserInfo *user_info) {
+void* handleUserInfo(PurpleConnection *gc, const char *who, PurpleNotifyUserInfo *user_info) {
     GList* entries = purple_notify_user_info_get_entries(user_info);
     if (entries == NULL) {
-        return;
+        return NULL;
     }
 
     s_signalEventData *ev = malloc(sizeof(s_signalEventData));
@@ -321,4 +321,6 @@ void handleUserInfo(PurpleConnection *gc, const char *who, PurpleNotifyUserInfo 
     ev->freeMe = true;
     ev->data = msgData;
     signalling_push(ev);
+
+    return NULL;
 }
