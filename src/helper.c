@@ -219,13 +219,6 @@ napi_value setupPurple(napi_env env, napi_callback_info info) {
         purple_plugins_add_search_path(opts.pluginDir);
     }
 
-
-<<<<<<< HEAD
-    // FIXME that's uiopts passed as a PurpleConversation, with actual Opts being NULL: what's the idea here?
-    purple_conversation_set_ui_ops(&uiopts, NULL);
-=======
-    purple_conversations_set_ui_ops(&uiops);
->>>>>>> tadzik/tadzik/c-warnings-and-fixes
     purple_prefs_load();
     purple_set_blist(purple_blist_new());
     purple_core_init(STR_PURPLE_UI);
