@@ -26,6 +26,7 @@
   },
   "binary": {
     "module_name": "module",
-    "module_path": "./lib"
+    "module_path": "./lib",
+    "host": "foo"
   }
 }

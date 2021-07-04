@@ -2,71 +2,48 @@
 #include "helper.h"
 
 /*
- Horrible stiching together of libuv's loop for purple.
- This works by getting the node env's loop and adding our own
- timers and polls to it.
+    Horrible stiching together of libuv's loop for purple.
+    This works by getting the node env's loop and adding our own
+    timers and polls to it.
 */
 
 // Structure for timers
 // One uv_timer_t corresponds to one s_evLoopTimer
 typedef struct {
-    uint32_t id;
     uv_timer_t* handle;
     GSourceFunc function;
     gpointer data;
 } s_evLoopTimer;
 
-// Structure for inputs
-// Unlike timers, many s_evLoopInputs can be assigned to one fd/handle.
+/**
+ * Structure used to map one uv_poll_t to many events.
+ * When the events list is empty, this should be culled. 
+ */
 typedef struct {
-    uint32_t id;
     uv_poll_t* handle;
     int fd;
-    uint32_t* openPollCounter; // Number of open inputs to the handle.
-    int operations;
+    int cond;
+    // s_evLoopInputEvent
+    GList* events;
+} s_evLoopInput;
+
+typedef struct {
     PurpleInputFunction func;
     gpointer user_data;
-} s_evLoopInput;
+    int events;
+    s_evLoopInput* parent;
+} s_evLoopInputEvent;
 
 // Global state for the eventloop.
 typedef struct {
     uv_loop_t* loop;
-    GList *timers; /* s_evLoopTimer */
-    uint32_t timerId;
-    GList *inputs; /* s_evLoopInput */
-    uint32_t inputId;
+    // fd -> s_evLoopInput
+    GHashTable* inputs;
 } s_evLoopState;
 
 void call_callback(uv_timer_t* handle);
 
 static s_evLoopState evLoopState;
-
-gint findTimerById(gconstpointer item, gconstpointer id) {
-    s_evLoopTimer timer = *(s_evLoopTimer*)item;
-    if (timer.id == *(uint32_t*)id) {
-        return 0;
-    } else {
-        return 1;
-    }
-}
-
-gint findInputById(gconstpointer item, gconstpointer id) {
-    s_evLoopInput input = *(s_evLoopInput*)item;
-    if (input.id == *(uint32_t*)id) {
-        return 0;
-    } else {
-        return 1;
-    }
-}
-
-gint findInputByFd(gconstpointer item, gconstpointer fd) {
-    s_evLoopInput input = *(s_evLoopInput*)item;
-    if (input.fd == *(int*)fd) {
-        return 0;
-    } else {
-        return 1;
-    }
-}
 
 /**
 * Should create a callback timer with an interval measured in
@@ -92,19 +69,15 @@ gint findInputByFd(gconstpointer item, gconstpointer fd) {
 * @see purple_timeout_add
 **/
 guint timeout_add (guint interval, GSourceFunc function, gpointer data) {
-    evLoopState.timerId++;
-    uv_timer_t *handle = malloc(sizeof(uv_timer_t));
     s_evLoopTimer *timer = malloc(sizeof(s_evLoopTimer));
-    uint32_t id = evLoopState.timerId;
+    uv_timer_t *handle = malloc(sizeof(uv_timer_t));
     uv_timer_init(evLoopState.loop, handle);
     timer->handle = handle;
     timer->function = function;
     timer->data = data;
-    timer->id = id;
-    handle->data = timer;
-    evLoopState.timers = g_list_append(evLoopState.timers, timer);
+    uv_handle_set_data(handle, timer);
     uv_timer_start(handle, call_callback, interval, 0);
-    return id;
+    return timer;
 }
 
 /**
@@ -127,7 +100,6 @@ guint timeout_add_seconds(guint interval, GSourceFunc function, gpointer data) {
 
 void on_timer_close_complete(uv_handle_t* handle)
 {
-    evLoopState.timers = g_list_remove(evLoopState.timers, handle->data);
     free(handle->data);
     free(handle);
 }
@@ -142,49 +114,16 @@ void on_timer_close_complete(uv_handle_t* handle)
 * @see purple_timeout_remove
 */
 gboolean timeout_remove(guint handle) {
-    GList* timerListItem = g_list_find_custom(evLoopState.timers, &handle, findTimerById);
-    if (timerListItem == NULL) {
-        return false;
-    }
-    s_evLoopTimer *timer = (s_evLoopTimer*)timerListItem->data;
-    if (timer->handle == NULL) {
-        return false;
-    }
+    g_return_val_if_fail(handle != NULL, false);
+    s_evLoopTimer *timer = handle;
     uv_timer_stop(timer->handle);
-    if (!uv_is_closing((uv_handle_t*)timer->handle)) {
-        uv_close((uv_handle_t*)timer->handle, on_timer_close_complete);
+    if (!uv_is_closing(timer->handle)) {
+        uv_close(timer->handle, on_timer_close_complete);
     }
-    return true;
-}
-
-/**
-* Should remove an input handler.  Analogous to g_source_remove in glib.
-* @param handle an identifier, as returned by #input_add.
-* @return       @c TRUE if the input handler was found and removed.
-* @see purple_input_remove
-*/
-gboolean input_remove (guint handle) {
-    printf("input_remove: handle %i\n", handle);
-    GList* timerListItem = g_list_find_custom(evLoopState.inputs, &handle, findInputById);
-    if (timerListItem == NULL) {
-        // We don't have an input handler for that FD.
-        return false;
-    }
-    s_evLoopInput *input = (s_evLoopInput*)timerListItem->data;
-    int polls = --(*input->openPollCounter);
-    evLoopState.inputs = g_list_remove(evLoopState.inputs, input);
-    if (polls > 0) {
-        return true;
-    }
-    uv_poll_stop(input->handle);
-    // XXX: This might be the wrong thing to do here, so commented out.
-    //      Hopefully a libuv/c veteran could clear this up, pun not intended :p.
-    free(input);
     return true;
 }
 
 void handle_input(uv_poll_t* handle, int status, int events) {
-    GList *l;
     if (status < 0) {
         printf("handle_input error status %i %s\n", status, uv_strerror(status));
         // XXX: Do we need to do anything if the status is not ok?
@@ -193,46 +132,19 @@ void handle_input(uv_poll_t* handle, int status, int events) {
         printf("handle_input unexpected positive status %i\n");
     }
     int closedFD = -1;
-    // XXX: This is rather dreadful, but supposedly fast enough for
-    //      what we are doing.
-    for (l = evLoopState.inputs; l != NULL; l = l->next)
-    {
-        s_evLoopInput *input = (s_evLoopInput*)l->data;
-        if (input->handle != handle) {
-            continue;
-        }
-        if ((input->operations & 1) && (events & 1)) {
-            printf("read for FD %i ID %i\n", input->fd, input->id);
-            // Read
-            input->func(input->user_data, input->fd, events);
-            printf("read complete\n");
-        }
-        if ((input->operations & 2) && (events & 2)) {
-            printf("write for FD %i ID %i\n", input->fd);
-            // Write
-            input->func(input->user_data, input->fd, events);
-            printf("write complete\n");
-        }
-
-        if (fcntl(input->fd, F_GETFL) < 0 && errno == EBADF) {
-            printf("FD %i closed, cleaning up\n", input->fd);
-            closedFD = input->fd;
-            // FD is closed, invoke the cleanup.
-            // file descriptor is invalid or closed
+    s_evLoopInput *input = handle->data;
+    GList *elem;
+    s_evLoopInputEvent *inputEvent;
+    for(elem = input->events; elem; elem = elem->next) {
+        inputEvent = elem->data;
+        if (inputEvent->events & events) {
+            inputEvent->func(inputEvent->user_data, inputEvent->parent->fd, events);
         }
     }
-    if (closedFD == -1) {
-        return;
-    }
-    // Cleanup
-    for (l = evLoopState.inputs; l != NULL; l = l->next)
-    {
-        s_evLoopInput *input = (s_evLoopInput*)l->data;
-        if (input->handle != handle) {
-            continue;
-        }
-        input_remove(input->id);
-    }
+    // if (fcntl(input->fd, F_GETFL) < 0 && errno == EBADF) {
+    //     printf("FD %i closed (%i), cleaning up\n", input->fd, input->id);
+    //     input_remove(handle);
+    // }
 }
 
 
@@ -253,45 +165,71 @@ void handle_input(uv_poll_t* handle, int status, int events) {
 */
 guint input_add(int fd, PurpleInputCondition cond,
                 PurpleInputFunction func, gpointer user_data) {
+    g_return_if_fail(cond == 1 || cond == 2);
+    g_return_if_fail(fd > 0);
 
-    uv_poll_t *poll_handle = NULL;
-    uint32_t *pollsOpen;
+    /**
+     * There is some subtle logic to this function. LibUV can only handle
+     * one poll handle per FD, but libpurple wants us to be able to support
+     * multiple per FD. This means we need to manage multiple inputs for
+     * a single handle ourselves.
+     */
 
-    // Iterate over existing inputs to see if a handle exists.
-    GList* inputListItem = g_list_find_custom(evLoopState.inputs, &fd, findInputByFd);
-    if (inputListItem == NULL) {
-        // We don't have an input handler for that FD yet.
-        poll_handle = malloc(sizeof(uv_poll_t));
-        uv_poll_init(evLoopState.loop, poll_handle, fd);
-        pollsOpen = malloc(sizeof(uint32_t));
-        *pollsOpen = 0;
+    // Create a struct to hold THIS event/func pair
+    s_evLoopInputEvent *input_event = g_malloc(sizeof(uv_poll_t));
+    input_event->events = cond;
+    input_event->func = func;
+    input_event->user_data = user_data;
+
+    s_evLoopInput *input_handle = g_hash_table_lookup(evLoopState.inputs, &fd);
+    if (input_handle == NULL) {
+        printf("Creating a new input handler: %i Cond: %i\n", fd, cond);
+        input_handle = g_malloc(sizeof(s_evLoopInput));
+        input_handle->fd = fd;
+        input_handle->handle = g_malloc(sizeof(uv_poll_t));
+        input_handle->cond = cond;
+        input_handle->events = NULL;
+        uv_handle_set_data(input_handle->handle, input_handle);
+        uv_poll_init(evLoopState.loop, input_handle->handle, fd);
+        g_hash_table_insert(evLoopState.inputs, &input_handle->fd, input_handle);
     } else {
-        // We have an existing handle for this, so just take it.
-        s_evLoopInput *previous_handle = (s_evLoopInput*)inputListItem->data;
-        poll_handle = previous_handle->handle;
-        pollsOpen = previous_handle->openPollCounter;
+        printf("Re-using input handler: %i Cond: %i\n", fd, cond);
+        // Nothing to do, except update the condition on the poll
+        input_handle->cond = input_handle->cond | cond;
     }
+    // This will update the handle if the cond changed.
+    uv_poll_start(input_handle->handle, input_handle->cond, handle_input);
+    printf("Started polling with FD %i Cond: %i\n", fd, cond);  
+    input_event->parent = input_handle;
+    input_handle->events = g_list_append(input_handle->events, input_event);
+    return input_event;
+}
 
-    // Create the input handle.
-    s_evLoopInput *input_handle = malloc(sizeof(s_evLoopInput));
-    input_handle = malloc(sizeof(s_evLoopInput));
-    input_handle->fd = fd;
-    input_handle->handle = poll_handle;
-    input_handle->operations = cond;
-    input_handle->user_data = user_data;
-    input_handle->func = func;
-    input_handle->id = evLoopState.inputId;
-    // Increment the counter because we've added another input to this poll.
-    (*pollsOpen)++;
-    input_handle->openPollCounter = pollsOpen;
-    evLoopState.inputId++;
-
-    // Insert the handler.
-    evLoopState.inputs = g_list_append(evLoopState.inputs, input_handle);
-
-    // enum has 1=readable, 2=writable, which coincidentally matches libpurple's PurpleInputCondition...
-    uv_poll_start(poll_handle, (int)cond, handle_input);
-    return input_handle->id;
+/**
+* Should remove an input handler.  Analogous to g_source_remove in glib.
+* @param handle an identifier, as returned by #input_add.
+* @return       @c TRUE if the input handler was found and removed.
+* @see purple_input_remove
+*/
+gboolean input_remove (guint handle) {
+    g_return_val_if_fail(handle != NULL, false);
+    s_evLoopInputEvent *inputEvent = handle;
+    s_evLoopInput *input = inputEvent->parent;
+    printf("input_remove FD: %i\n", input->fd);
+    if (g_list_find(input->events, inputEvent) == NULL) {
+    printf("input_remove did not find event for FD: %i\n", input->fd);
+        return false;
+    }
+    input->events = g_list_remove(input->events, inputEvent);
+    free(inputEvent);
+    if (g_list_length(input->events) > 0) {
+        return true;
+        // Do not clean up the handle yet.
+    }
+    uv_poll_stop(input->handle);
+    free(input->handle);
+    free(input);
+    return true;
 }
 
 static PurpleEventLoopUiOps glib_eventloops =
@@ -314,8 +252,7 @@ PurpleEventLoopUiOps* eventLoop_get(napi_env* env) {
         if (napi_get_uv_event_loop(*env, &evLoopState.loop) != napi_ok) {
             THROW(*env, NULL, "Could not get UV loop", NULL);
         }
-        evLoopState.inputId = 0;
-        evLoopState.timerId = 0;
+        evLoopState.inputs = g_hash_table_new_full(g_int_hash, g_int_equal, NULL, NULL);
     }
     return &glib_eventloops;
 }
