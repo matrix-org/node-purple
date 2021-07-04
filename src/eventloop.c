@@ -215,18 +215,23 @@ gboolean input_remove (guint handle) {
     g_return_val_if_fail(handle != NULL, false);
     s_evLoopInputEvent *inputEvent = handle;
     s_evLoopInput *input = inputEvent->parent;
-    printf("input_remove FD: %i\n", input->fd);
+    printf("input_remove: for FD %i\n", input->fd);
     if (g_list_find(input->events, inputEvent) == NULL) {
-    printf("input_remove did not find event for FD: %i\n", input->fd);
+    printf("input_remove: did not find event for FD: %i\n", input->fd);
         return false;
     }
     input->events = g_list_remove(input->events, inputEvent);
     free(inputEvent);
-    if (g_list_length(input->events) > 0) {
+    guint listeners = g_list_length(input->events);
+    if (listeners > 0) {
+        // TODO: We should change the flags for the poll handle here.
+        printf("input_remove: FD %i still has %i listeners\n", input->fd, listeners);
         return true;
         // Do not clean up the handle yet.
     }
+    printf("input_remove: Dropping FD %i\n", input->fd);
     uv_poll_stop(input->handle);
+    g_hash_table_remove(evLoopState.inputs, &input->fd);
     free(input->handle);
     free(input);
     return true;
