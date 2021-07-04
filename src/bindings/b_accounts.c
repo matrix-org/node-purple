@@ -31,24 +31,19 @@ napi_status account_settings_to_object(napi_env env, napi_value value, GHashTabl
         PurpleAccountSetting* sval = (PurpleAccountSetting*) val;
 
         if (sval->type == PURPLE_PREF_STRING) {
-            printf("sValue: %s\n", sval->value.string);
             status = napi_create_string_utf8(env, sval->value.string, NAPI_AUTO_LENGTH, &jvalue);
             if (status != napi_ok) return status;
         } else if (sval->type == PURPLE_PREF_BOOLEAN) {
-            printf("bValue: %i\n", sval->value.boolean);
             status = napi_get_boolean(env, sval->value.boolean, &jvalue);
             if (status != napi_ok) return status;
         } else if (sval->type == PURPLE_PREF_INT) {
-            printf("iValue: %i\n", sval->value.integer);
             status = napi_create_int32(env, sval->value.integer, &jvalue);
             if (status != napi_ok) return status;
         } else {
-            printf("Undefined");
             status = napi_get_undefined(env, &jvalue);
             if (status != napi_ok) return status;
         }
 
-        printf("Set: %s\n", skey);
         status = napi_create_string_utf8(env, skey, NAPI_AUTO_LENGTH, &jkey);
         if (status != napi_ok) return status;
         status = napi_set_property(env, value, jkey, jvalue);
