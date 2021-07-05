@@ -231,7 +231,6 @@ napi_value setupPurple(napi_env env, napi_callback_info info) {
     // To get our buddies :3
     purple_blist_load();
     wirePurpleSignalsIntoNode(env, opts.eventFunc);
-    free(opts.pluginDir);
     return n_undef;
 }
 

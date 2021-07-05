@@ -199,7 +199,7 @@ napi_value _purple_account_configure(napi_env env, napi_callback_info info) {
     unsigned int length;
     if (napi_get_property_names(env, config_object, &nComponentNames) != napi_ok ||
         napi_get_array_length(env, nComponentNames, &length) != napi_ok) {
-      THROW(env, NULL, "passed config option not an object", NULL);
+        THROW(env, NULL, "passed config option not an object", NULL);
     }
     for (unsigned int i = 0; i < length; i++) {
         napi_get_element(env, nComponentNames, i, &jkey);
@@ -300,7 +300,7 @@ napi_value _purple_accounts_get_enabled(napi_env env, napi_callback_info info) {
         THROW(env, NULL, "get_enabled takes one argument", NULL);
     }
 
-    napi_get_value_external(env, opt, (void*)&account);
+    napi_get_value_external(env, opt, &account);
     gboolean enabled = purple_account_get_enabled(account, STR_PURPLE_UI);
     napi_get_boolean(env, enabled, &n_out);
     return n_out;
@@ -315,9 +315,9 @@ napi_value _purple_accounts_set_enabled(napi_env env, napi_callback_info info) {
         THROW(env, NULL, "set_enabled takes two arguments", NULL);
     }
 
-    napi_get_value_external(env, opts[0], (void*)&account);
+    napi_get_value_external(env, opts[0], &account);
     gboolean enable;
-    napi_get_value_bool(env, opts[1], (void*)&enable);
+    napi_get_value_bool(env, opts[1], &enable);
     purple_account_set_enabled(account, STR_PURPLE_UI, enable);
 
     return NULL;
