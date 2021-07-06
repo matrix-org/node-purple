@@ -36,6 +36,12 @@ typedef struct {
     char* value;
 } e_UserInfoResponseItem;
 
+typedef struct {
+    PurpleAccount *account;
+    char* sender;
+    bool typing;
+} e_UserTyping;
+
 napi_value getJsObjectForSignalEvent(napi_env env, s_signalEventData *eventData) {
     napi_value evtObj;
     napi_value value;
@@ -159,7 +165,20 @@ napi_value getJsObjectForSignalEvent(napi_env env, s_signalEventData *eventData)
 
         }
         napi_set_named_property(env, evtObj, "join_properties", value);
+    }
 
+    if (strcmp(eventData->signal, "im-typing") == 0) {
+        printf("Got im-typing\n");
+        e_UserTyping typingData = *(e_UserTyping*)eventData->data;
+        napi_value acct = nprpl_account_create(env, typingData.account);
+        napi_set_named_property(env, evtObj, "account", acct);
+
+        napi_create_string_utf8(env, typingData.sender, NAPI_AUTO_LENGTH, &value);
+        napi_set_named_property(env, evtObj, "sender", value);
+
+        napi_get_boolean(env, typingData.typing, &value);
+        napi_set_named_property(env, evtObj, "typing", value);
+        printf("Got finished\n");
     }
     return evtObj;
 }
@@ -324,3 +343,27 @@ void* handleUserInfo(PurpleConnection *gc, const char *who, PurpleNotifyUserInfo
 
     return NULL;
 }
+
+void handleBuddyTyping(PurpleAccount *account, const char *name, void *data) {
+    printf("AAAAAARGH1\n");
+    handleTyping(account, name, true);
+}
+
+void handleBuddyTypingStopped(PurpleAccount *account, const char *name, void *data) {
+    printf("AAAAAARGH2\n");
+    handleTyping(account, name, false);
+}
+
+void handleTyping(PurpleAccount *account, const char *name, bool typing) {
+    s_signalEventData *ev = malloc(sizeof(s_signalEventData));
+    e_UserTyping *typingData = malloc(sizeof(e_UserTyping));
+    typingData->typing = typing;
+    typingData->account = account;
+    typingData->sender = malloc(strlen(name) + 1);
+    strcpy(typingData->sender, name);
+    ev->signal = "im-typing";
+    ev->freeMe = true;
+    ev->data = typingData;
+    signalling_push(ev);
+}
+

@@ -246,6 +246,56 @@ napi_value messaging_findConversation(napi_env env, napi_callback_info info) {
     return nprpl_conv_create(env, conv);
 }
 
+napi_value messaging_set_im_typing_state(napi_env env, napi_callback info) {
+    PurpleAccount* account;
+    size_t argc = 3;
+    napi_value opts[3];
+    char* name;
+
+    napi_get_cb_info(env, info, &argc, opts, NULL, NULL);
+    if (argc < 3) {
+        THROW(env, NULL, "setIMTypingState takes three arguments", NULL);
+    }
+
+    // Get the account
+    napi_get_value_external(env, opts[0], (void*)&account);
+
+    if (account == NULL) {
+        THROW(env, NULL, "account is null", NULL);
+    }
+
+    name = napi_help_strfromval(env, opts[1]);
+
+    const PurpleConversation* conv = purple_find_conversation_with_account(
+        PURPLE_CONV_TYPE_IM,
+        name,
+        account
+    );
+
+    if (conv == NULL) {
+        THROW(env, NULL, "Cannot set typing notification as conv doesn't exist", NULL);
+    }
+    // Get the IM
+    PurpleConvIm* convIm = purple_conversation_get_im_data(conv);
+
+    int32_t state;
+
+    if (napi_get_value_int32(env, opts[2], &state) != napi_ok) {
+        THROW(env, NULL, "could not determine typing state from arg", NULL);
+    }
+    g_return_if_fail(state >= 0 && state <= 2);
+
+    serv_send_typing(
+        purple_conversation_get_gc(conv),
+        name,
+        state
+    );
+    free(name);
+
+    return NULL;
+
+} 
+
 void messaging_bind_node(napi_env env,napi_value root) {
     napi_value namespace;
     napi_value _func;
@@ -253,6 +303,9 @@ void messaging_bind_node(napi_env env,napi_value root) {
 
     napi_create_function(env, NULL, 0, messaging_sendIM, NULL, &_func);
     napi_set_named_property(env, namespace, "sendIM", _func);
+
+    napi_create_function(env, NULL, 0, messaging_set_im_typing_state, NULL, &_func);
+    napi_set_named_property(env, namespace, "setIMTypingState", _func);
 
     napi_create_function(env, NULL, 0, messaging_sendChat, NULL, &_func);
     napi_set_named_property(env, namespace, "sendChat", _func);

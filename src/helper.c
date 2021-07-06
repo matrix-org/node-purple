@@ -76,6 +76,20 @@ void handlePurpleSignalCb(gpointer signalData, gpointer data) {
     signalling_push(ev);
 }
 
+static void
+buddy_typing_cb(PurpleAccount *account, const char *name, void *data)
+{
+	purple_debug_misc("signals test", "buddy-typing (%s, %s)\n",
+					purple_account_get_username(account), name);
+}
+
+static void
+buddy_typing_stopped_cb(PurpleAccount *account, const char *name, void *data)
+{
+	purple_debug_misc("signals test", "buddy-typing-stopped (%s, %s)\n",
+					purple_account_get_username(account), name);
+}
+
 void wirePurpleSignalsIntoNode(napi_env env, napi_value eventFunc) {
     static int handle;
     s_signalCbData *cbData;
@@ -128,19 +142,14 @@ void wirePurpleSignalsIntoNode(napi_env env, napi_value eventFunc) {
     purple_signal_connect(conv_handle, "received-chat-msg", &handle,
                 PURPLE_CALLBACK(handleReceivedMessage), cbData);
 
-    // Joined
-    /*cbData = malloc(sizeof(s_signalCbData));
-    cbData->signal = "chat-user-joined";
-    purple_signal_connect(conv_handle, "chat-user-joined", &handle,
-                PURPLE_CALLBACK(handleUserJoined), NULL);
-    // Invited (other users)
-    cbData->signal = "chat-invited-user";
-    purple_signal_connect(conv_handle, "chat-invited-user", &handle,
-                PURPLE_CALLBACK(handleUserInvited), NULL);
-    // Left
-    cbData->signal = "chat-user-left";
-    purple_signal_connect(conv_handle, "chat-user-left", &handle,
-                PURPLE_CALLBACK(handleUserLeft), NULL);*/
+    cbData->signal = "buddy-typing";
+    purple_signal_connect(conv_handle, "buddy-typing", &handle,
+                PURPLE_CALLBACK(handleBuddyTyping), cbData);
+
+    cbData->signal = "buddy-typing-stopped";
+    purple_signal_connect(conv_handle, "buddy-typing-stopped", &handle,
+                PURPLE_CALLBACK(handleBuddyTypingStopped), cbData);
+
 
     purple_signal_connect(conv_handle, "chat-joined", &handle,
                 PURPLE_CALLBACK(handleJoined), NULL);
