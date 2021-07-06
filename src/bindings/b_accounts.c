@@ -316,9 +316,10 @@ napi_value _purple_accounts_set_enabled(napi_env env, napi_callback_info info) {
     }
 
     napi_get_value_external(env, opts[0], &account);
-    gboolean enable;
+    bool enable;
     napi_get_value_bool(env, opts[1], &enable);
-    purple_account_set_enabled(account, STR_PURPLE_UI, enable);
+    // Gboolean nonsense
+    purple_account_set_enabled(account, STR_PURPLE_UI, enable ? TRUE : FALSE);
 
     return NULL;
 }

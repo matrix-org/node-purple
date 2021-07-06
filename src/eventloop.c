@@ -141,10 +141,6 @@ void handle_input(uv_poll_t* handle, int status, int events) {
             inputEvent->func(inputEvent->user_data, inputEvent->parent->fd, events);
         }
     }
-    // if (fcntl(input->fd, F_GETFL) < 0 && errno == EBADF) {
-    //     printf("FD %i closed (%i), cleaning up\n", input->fd, input->id);
-    //     input_remove(handle);
-    // }
 }
 
 
@@ -183,7 +179,6 @@ guint input_add(int fd, PurpleInputCondition cond,
 
     s_evLoopInput *input_handle = g_hash_table_lookup(evLoopState.inputs, &fd);
     if (input_handle == NULL) {
-        printf("Creating a new input handler: %i Cond: %i\n", fd, cond);
         input_handle = g_malloc(sizeof(s_evLoopInput));
         input_handle->fd = fd;
         input_handle->handle = g_malloc(sizeof(uv_poll_t));
@@ -193,13 +188,11 @@ guint input_add(int fd, PurpleInputCondition cond,
         uv_poll_init(evLoopState.loop, input_handle->handle, fd);
         g_hash_table_insert(evLoopState.inputs, &input_handle->fd, input_handle);
     } else {
-        printf("Re-using input handler: %i Cond: %i\n", fd, cond);
         // Nothing to do, except update the condition on the poll
         input_handle->cond = input_handle->cond | cond;
     }
     // This will update the handle if the cond changed.
     uv_poll_start(input_handle->handle, input_handle->cond, handle_input);
-    printf("Started polling with FD %i Cond: %i\n", fd, cond);  
     input_event->parent = input_handle;
     input_handle->events = g_list_append(input_handle->events, input_event);
     return input_event;
@@ -215,9 +208,7 @@ gboolean input_remove (guint handle) {
     g_return_val_if_fail(handle != NULL, false);
     s_evLoopInputEvent *inputEvent = handle;
     s_evLoopInput *input = inputEvent->parent;
-    printf("input_remove: for FD %i\n", input->fd);
     if (g_list_find(input->events, inputEvent) == NULL) {
-    printf("input_remove: did not find event for FD: %i\n", input->fd);
         return false;
     }
     input->events = g_list_remove(input->events, inputEvent);
@@ -225,11 +216,9 @@ gboolean input_remove (guint handle) {
     guint listeners = g_list_length(input->events);
     if (listeners > 0) {
         // TODO: We should change the flags for the poll handle here.
-        printf("input_remove: FD %i still has %i listeners\n", input->fd, listeners);
         return true;
         // Do not clean up the handle yet.
     }
-    printf("input_remove: Dropping FD %i\n", input->fd);
     uv_poll_stop(input->handle);
     g_hash_table_remove(evLoopState.inputs, &input->fd);
     free(input->handle);
