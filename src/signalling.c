@@ -168,7 +168,6 @@ napi_value getJsObjectForSignalEvent(napi_env env, s_signalEventData *eventData)
     }
 
     if (strcmp(eventData->signal, "im-typing") == 0) {
-        printf("Got im-typing\n");
         e_UserTyping typingData = *(e_UserTyping*)eventData->data;
         napi_value acct = nprpl_account_create(env, typingData.account);
         napi_set_named_property(env, evtObj, "account", acct);
@@ -178,7 +177,6 @@ napi_value getJsObjectForSignalEvent(napi_env env, s_signalEventData *eventData)
 
         napi_get_boolean(env, typingData.typing, &value);
         napi_set_named_property(env, evtObj, "typing", value);
-        printf("Got finished\n");
     }
     return evtObj;
 }
@@ -345,12 +343,10 @@ void* handleUserInfo(PurpleConnection *gc, const char *who, PurpleNotifyUserInfo
 }
 
 void handleBuddyTyping(PurpleAccount *account, const char *name, void *data) {
-    printf("AAAAAARGH1\n");
     handleTyping(account, name, true);
 }
 
 void handleBuddyTypingStopped(PurpleAccount *account, const char *name, void *data) {
-    printf("AAAAAARGH2\n");
     handleTyping(account, name, false);
 }
 
