@@ -213,7 +213,6 @@ napi_value setupPurple(napi_env env, napi_callback_info info) {
     purple_notify_set_ui_ops(notifyopts);
     PurpleEventLoopUiOps *evLoopOps = eventLoop_get(&env);
     if (evLoopOps == NULL) {
-        // Exception, return
         return;
     }
     purple_eventloop_set_ui_ops(evLoopOps);

@@ -83,11 +83,11 @@ napi_value getJsObjectForSignalEvent(napi_env env, s_signalEventData *eventData)
 
         napi_create_string_utf8(env, msgData.buffer, NAPI_AUTO_LENGTH, &value);
         napi_set_named_property(env, evtObj, "message", value);
-        free(msgData.buffer);
+        g_free(msgData.buffer);
 
         napi_create_string_utf8(env, msgData.sender, NAPI_AUTO_LENGTH, &value);
         napi_set_named_property(env, evtObj, "sender", value);
-        free(msgData.sender);
+        g_free(msgData.sender);
         if (msgData.conv != NULL) {
             value = nprpl_conv_create(env, msgData.conv);
             napi_set_named_property(env, evtObj, "conv", value);
@@ -203,12 +203,8 @@ void handleReceivedMessage(PurpleAccount *account, char *sender, char *buffer, P
 
     ev->signal = cbData.signal;
     msgData->account = account;
-
-    msgData->buffer = malloc(strlen(buffer) + 1);
-    strcpy(msgData->buffer, buffer);
-
-    msgData->sender = malloc(strlen(sender) + 1);
-    strcpy(msgData->sender, sender);
+    msgData->buffer = g_strdup(buffer);
+    msgData->sender = g_strdup(sender);
 
 //    // TODO: Do not create a convo for chats
 //    // The first message won't have a conversation, so create it.
@@ -233,24 +229,21 @@ void handleInvited(PurpleAccount *account, const char *inviter, const char *room
 
 
     if (inviter != NULL) {
-        msgData->sender = malloc(strlen(inviter) + 1);
-        strcpy(msgData->sender, inviter);
+        msgData->sender = g_strdup(inviter);
     } else {
         msgData->sender = NULL;
     }
 
 
     if (room_name != NULL) {
-        msgData->roomName = malloc(strlen(room_name) + 1);
-        strcpy(msgData->roomName, room_name);
+        msgData->roomName = g_strdup(room_name);
     } else {
         msgData->roomName = NULL;
     }
 
 
     if (message != NULL) {
-        msgData->message = malloc(strlen(message) + 1);
-        strcpy(msgData->message, message);
+        msgData->message = g_strdup(message);
     } else {
         msgData->message = NULL;
     }
@@ -290,8 +283,7 @@ void handleAccountConnectionError(PurpleAccount *account, PurpleConnectionError 
     s_signalEventData *ev = malloc(sizeof(s_signalEventData));
     s_EventDataConnectionError *msgData = malloc(sizeof(s_EventDataConnectionError));
     msgData->account = account;
-    msgData->description = malloc(strlen(description) + 1);
-    strcpy(msgData->description, description);
+    msgData->description = g_strdup(description);
     msgData->type = type;
     ev->data = msgData;
     ev->signal = "account-connection-error";
@@ -322,18 +314,15 @@ void* handleUserInfo(PurpleConnection *gc, const char *who, PurpleNotifyUserInfo
         dest = malloc(sizeof(e_UserInfoResponseItem));
 
         const char* label = purple_notify_user_info_entry_get_label(src);
-        dest->label = malloc(strlen(label) + 1);
-        strcpy(dest->label, label);
+        dest->label = g_strdup(label);
 
         const char* value = purple_notify_user_info_entry_get_value(src);
-        dest->value = malloc(strlen(value) + 1);
-        strcpy(dest->value, value);
+        dest->value = g_strdup(value);
 
         msgData->items = g_list_append(msgData->items, dest);
     }
-    msgData->who = malloc(strlen(who) + 1);
+    msgData->who = g_strdup(who);
     msgData->account = purple_connection_get_account(gc);
-    strcpy(msgData->who, who);
     ev->signal = "user-info-response";
     ev->freeMe = true;
     ev->data = msgData;
@@ -355,8 +344,7 @@ void handleTyping(PurpleAccount *account, const char *name, bool typing) {
     e_UserTyping *typingData = malloc(sizeof(e_UserTyping));
     typingData->typing = typing;
     typingData->account = account;
-    typingData->sender = malloc(strlen(name) + 1);
-    strcpy(typingData->sender, name);
+    typingData->sender = g_strdup(name);
     ev->signal = "im-typing";
     ev->freeMe = true;
     ev->data = typingData;

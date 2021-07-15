@@ -113,7 +113,7 @@ void on_timer_close_complete(uv_handle_t* handle)
 *               found and removed.
 * @see purple_timeout_remove
 */
-gboolean timeout_remove(guint handle) {
+gboolean timeout_remove(gpointer handle) {
     g_return_val_if_fail(handle != NULL, false);
     s_evLoopTimer *timer = handle;
     uv_timer_stop(timer->handle);
@@ -123,13 +123,20 @@ gboolean timeout_remove(guint handle) {
     return true;
 }
 
+/**
+* Handle input event from a poll. 
+*
+* @param handle    the libuv poll handle.
+* @param status    the status of the poll handle. 0 for OK, negative for not-ok.
+* @param events    the type of event raised (uv_poll_event), either 1 for read or 2 for write.
+*/
 void handle_input(uv_poll_t* handle, int status, int events) {
     if (status < 0) {
-        printf("handle_input error status %i %s\n", status, uv_strerror(status));
+        g_warning("handle_input error status %i %s\n", status, uv_strerror(status));
         // XXX: Do we need to do anything if the status is not ok?
     } else if (status > 0) {
         // Unexpected positive status
-        printf("handle_input unexpected positive status %i\n");
+        g_warning("handle_input unexpected positive status %i\n", status);
     }
     int closedFD = -1;
     s_evLoopInput *input = handle->data;
@@ -161,7 +168,8 @@ void handle_input(uv_poll_t* handle, int status, int events) {
 */
 guint input_add(int fd, PurpleInputCondition cond,
                 PurpleInputFunction func, gpointer user_data) {
-    g_return_if_fail(cond == 1 || cond == 2);
+    // Ensure we do not attempt to create a handle for invalid conditions.
+    g_return_if_fail(cond == PURPLE_INPUT_READ || cond == PURPLE_INPUT_WRITE);
     g_return_if_fail(fd > 0);
 
     /**
@@ -172,8 +180,8 @@ guint input_add(int fd, PurpleInputCondition cond,
      */
 
     // Create a struct to hold THIS event/func pair
-    s_evLoopInputEvent *input_event = g_malloc(sizeof(uv_poll_t));
-    input_event->events = cond;
+    s_evLoopInputEvent *input_event = g_malloc(sizeof(s_evLoopInputEvent));
+    input_event->events = cond; // Mapping to equivalent values in uv_poll_event.
     input_event->func = func;
     input_event->user_data = user_data;
 
@@ -189,7 +197,7 @@ guint input_add(int fd, PurpleInputCondition cond,
         g_hash_table_insert(evLoopState.inputs, &input_handle->fd, input_handle);
     } else {
         // Nothing to do, except update the condition on the poll
-        input_handle->cond = input_handle->cond | cond;
+        input_handle->cond |= cond;
     }
     // This will update the handle if the cond changed.
     uv_poll_start(input_handle->handle, input_handle->cond, handle_input);
@@ -204,7 +212,7 @@ guint input_add(int fd, PurpleInputCondition cond,
 * @return       @c TRUE if the input handler was found and removed.
 * @see purple_input_remove
 */
-gboolean input_remove (guint handle) {
+gboolean input_remove (gpointer handle) {
     g_return_val_if_fail(handle != NULL, false);
     s_evLoopInputEvent *inputEvent = handle;
     s_evLoopInput *input = inputEvent->parent;
