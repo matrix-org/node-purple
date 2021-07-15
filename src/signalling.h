@@ -35,5 +35,8 @@ void handleReceivedMessage(PurpleAccount *account, char *sender, char *buffer, P
 void handleInvited(PurpleAccount *account, const char *inviter, const char *room_name, const char *message, GHashTable *data);
 void handleAccountConnectionError(PurpleAccount *account, PurpleConnectionError type, char* description);
 void handleJoined(PurpleConversation *chat);
-void handleUserInfo(PurpleConnection *gc, const char *who, PurpleNotifyUserInfo *user_info);
+void* handleUserInfo(PurpleConnection *gc, const char *who, PurpleNotifyUserInfo *user_info);
+void handleBuddyTyping(PurpleAccount *account, const char *name, void *data);
+void handleBuddyTypingStopped(PurpleAccount *account, const char *name, void *data);
+
 #endif

@@ -16,7 +16,7 @@ napi_value nprpl_conv_create(napi_env env, PurpleConversation *conv) {
     napi_create_object(env, &obj);
     purple_conversation_get_name(conv);
 
-    char *sval = purple_conversation_get_name(conv);
+    const char *sval = purple_conversation_get_name(conv);
 
     napi_create_string_utf8(env, sval, NAPI_AUTO_LENGTH, &value);
     napi_set_named_property(env, obj, "name", value);

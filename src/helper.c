@@ -9,43 +9,38 @@ typedef struct {
   char* pluginDir;
 } s_setupPurple;
 
-void getSetupPurpleStruct(napi_env env, napi_callback_info info, s_setupPurple *o) {
+void getSetupPurpleStruct(napi_env env, napi_callback_info info, s_setupPurple* setupOpts) {
     size_t argc = 1;
-    napi_status status;
     napi_value opts;
-    s_setupPurple stemp;
     napi_valuetype type;
     napi_value value;
-
-    stemp.userDir = NULL;
-    stemp.pluginDir = NULL;
-
-
     napi_get_cb_info(env, info, &argc, &opts, NULL, NULL);
     if (argc == 0) {
-      napi_throw_error(env, NULL, "setupPurple takes a options object");
+        THROW(env, NULL, "setupPurple takes a options object");
     }
 
     /* debugEnabled */
     if (getValueFromObject(env, opts, "debugEnabled", &type, &value)) {
-      status = napi_get_value_int32(env, value, &stemp.debugEnabled);
+        napi_get_value_int32(env, value, &setupOpts->debugEnabled);
     }
 
-    if (napi_ok != napi_get_named_property(env, opts, "eventFunc", &stemp.eventFunc)) {
-        napi_throw_error(env, NULL, "setupPurple expects eventFunc to be defined");
+    if (napi_ok != napi_get_named_property(env, opts, "eventFunc", &setupOpts->eventFunc)) {
+        THROW(env, NULL, "setupPurple expects eventFunc to be defined");
     }
 
     /* userDir */
     if (getValueFromObject(env, opts, "userDir", &type, &value) && type == napi_string) {
-      stemp.userDir = napi_help_strfromval(env, value);
+        setupOpts->userDir = napi_help_strfromval(env, value);
+    } else {
+        setupOpts->userDir = NULL;
     }
 
     /* pluginDir */
     if (getValueFromObject(env, opts, "pluginDir", &type, &value) && type == napi_string) {
-      stemp.pluginDir = napi_help_strfromval(env, value);
+        setupOpts->pluginDir = napi_help_strfromval(env, value);
+    } else {
+        setupOpts->pluginDir = NULL;
     }
-
-    *o = stemp;
 }
 
 napi_value pollEvents(napi_env env, napi_callback_info info) {
@@ -79,6 +74,20 @@ void handlePurpleSignalCb(gpointer signalData, gpointer data) {
     // Don't free this, it's not ours.
     ev->freeMe = false;
     signalling_push(ev);
+}
+
+static void
+buddy_typing_cb(PurpleAccount *account, const char *name, void *data)
+{
+	purple_debug_misc("signals test", "buddy-typing (%s, %s)\n",
+					purple_account_get_username(account), name);
+}
+
+static void
+buddy_typing_stopped_cb(PurpleAccount *account, const char *name, void *data)
+{
+	purple_debug_misc("signals test", "buddy-typing-stopped (%s, %s)\n",
+					purple_account_get_username(account), name);
 }
 
 void wirePurpleSignalsIntoNode(napi_env env, napi_value eventFunc) {
@@ -133,19 +142,14 @@ void wirePurpleSignalsIntoNode(napi_env env, napi_value eventFunc) {
     purple_signal_connect(conv_handle, "received-chat-msg", &handle,
                 PURPLE_CALLBACK(handleReceivedMessage), cbData);
 
-    // Joined
-    /*cbData = malloc(sizeof(s_signalCbData));
-    cbData->signal = "chat-user-joined";
-    purple_signal_connect(conv_handle, "chat-user-joined", &handle,
-                PURPLE_CALLBACK(handleUserJoined), NULL);
-    // Invited (other users)
-    cbData->signal = "chat-invited-user";
-    purple_signal_connect(conv_handle, "chat-invited-user", &handle,
-                PURPLE_CALLBACK(handleUserInvited), NULL);
-    // Left
-    cbData->signal = "chat-user-left";
-    purple_signal_connect(conv_handle, "chat-user-left", &handle,
-                PURPLE_CALLBACK(handleUserLeft), NULL);*/
+    cbData->signal = "buddy-typing";
+    purple_signal_connect(conv_handle, "buddy-typing", &handle,
+                PURPLE_CALLBACK(handleBuddyTyping), cbData);
+
+    cbData->signal = "buddy-typing-stopped";
+    purple_signal_connect(conv_handle, "buddy-typing-stopped", &handle,
+                PURPLE_CALLBACK(handleBuddyTypingStopped), cbData);
+
 
     purple_signal_connect(conv_handle, "chat-joined", &handle,
                 PURPLE_CALLBACK(handleJoined), NULL);
@@ -172,7 +176,7 @@ void _accounts_restore_current_statuses()
         if (purple_account_get_enabled(account, purple_core_get_ui()) &&
             (purple_presence_is_online(account->presence)))
         {
-            timeout_add(timeout, (GSourceFunc)purple_account_connect, account);
+            timeout_add(timeout, G_SOURCE_FUNC(purple_account_connect), account);
             timeout += 100;
         }
     }
@@ -183,46 +187,50 @@ napi_value setupPurple(napi_env env, napi_callback_info info) {
     napi_get_undefined(env, &n_undef);
 
     s_setupPurple opts;
-    PurpleConversationUiOps uiopts = {
-      NULL,                      /* create_conversation  */
-      NULL,                      /* destroy_conversation */
-      NULL,                      /* write_chat           */
-      NULL,                      /* write_im             */
-      NULL,                      /* write_conv           */
-      NULL,                      /* chat_add_users       */
-      NULL,                      /* chat_rename_user     */
-      NULL,                      /* chat_remove_users    */
-      NULL,                      /* chat_update_user     */
-      NULL,                      /* present              */
-      NULL,                      /* has_focus            */
-      NULL,                      /* custom_smiley_add    */
-      NULL,                      /* custom_smiley_write  */
-      NULL,                      /* custom_smiley_close  */
-      NULL,                      /* send_confirm         */
-      NULL,
-      NULL,
-      NULL,
-      NULL
+    PurpleConversationUiOps uiops = {
+        NULL,                      /* create_conversation  */
+        NULL,                      /* destroy_conversation */
+        NULL,                      /* write_chat           */
+        NULL,                      /* write_im             */
+        NULL,                      /* write_conv           */
+        NULL,                      /* chat_add_users       */
+        NULL,                      /* chat_rename_user     */
+        NULL,                      /* chat_remove_users    */
+        NULL,                      /* chat_update_user     */
+        NULL,                      /* present              */
+        NULL,                      /* has_focus            */
+        NULL,                      /* custom_smiley_add    */
+        NULL,                      /* custom_smiley_write  */
+        NULL,                      /* custom_smiley_close  */
+        NULL,                      /* send_confirm         */
+        NULL,
+        NULL,
+        NULL,
+        NULL
     };
     PurpleNotifyUiOps *notifyopts = malloc(sizeof(PurpleNotifyUiOps));
     notifyopts->notify_userinfo = handleUserInfo;
     purple_notify_set_ui_ops(notifyopts);
-
-
-    purple_eventloop_set_ui_ops(eventLoop_get(&env));
+    PurpleEventLoopUiOps *evLoopOps = eventLoop_get(&env);
+    if (evLoopOps == NULL) {
+        return;
+    }
+    purple_eventloop_set_ui_ops(evLoopOps);
 
     getSetupPurpleStruct(env, info, &opts);
+    purple_debug_set_enabled(opts.debugEnabled);
     if (opts.userDir != NULL) {
-      purple_util_set_user_dir(opts.userDir);
+        // Purple copies these strings
+        purple_util_set_user_dir(opts.userDir);
+        free(opts.userDir);
     }
 
     if (opts.pluginDir != NULL) {
-      purple_plugins_add_search_path(opts.pluginDir);
+        // Purple copies these strings
+        purple_plugins_add_search_path(opts.pluginDir);
+        free(opts.pluginDir);
     }
 
-    purple_debug_set_enabled(opts.debugEnabled);
-
-    purple_conversation_set_ui_ops(&uiopts, NULL);
     purple_prefs_load();
     purple_set_blist(purple_blist_new());
     purple_core_init(STR_PURPLE_UI);
@@ -231,35 +239,33 @@ napi_value setupPurple(napi_env env, napi_callback_info info) {
     // To get our buddies :3
     purple_blist_load();
     wirePurpleSignalsIntoNode(env, opts.eventFunc);
-    free(opts.userDir);
-    free(opts.pluginDir);
     return n_undef;
 }
 
 /* N-API helpers */
 
 bool getValueFromObject(napi_env env, napi_value object, char* propStr, napi_valuetype *type, napi_value *value) {
-  napi_status status;
-  napi_value propName;
-  bool hasProperty;
-  status = napi_create_string_utf8(env, propStr, NAPI_AUTO_LENGTH, &propName);
-  if (status != napi_ok) {
-    napi_throw_error(env, NULL, "Could not get value from object: Could not create string");
-  }
-  status = napi_has_property(env, object, propName, &hasProperty);
-  if (status != napi_ok) {
-    napi_throw_error(env, NULL, "Could not get value from object: Could not get property");
-  }
-  if (!hasProperty) {
-    return false;
-  }
-  status = napi_get_property(env, object, propName, value);
-  if (status != napi_ok) {
-    napi_throw_error(env, NULL, "Could not get value from object: Could not get property");
-  }
-  status = napi_typeof(env, *value, type);
-  if (status != napi_ok) {
-    napi_throw_error(env, NULL, "Could not get value from object: Could not get type");
-  }
-  return true;
+    napi_status status;
+    napi_value propName;
+    bool hasProperty;
+    status = napi_create_string_utf8(env, propStr, NAPI_AUTO_LENGTH, &propName);
+    if (status != napi_ok) {
+        THROW(env, NULL, "Could not get value from object: Could not create string", false);
+    }
+    status = napi_has_property(env, object, propName, &hasProperty);
+    if (status != napi_ok) {
+        THROW(env, NULL, "Could not get value from object: Could not get property", false);
+    }
+    if (!hasProperty) {
+        return false;
+    }
+    status = napi_get_property(env, object, propName, value);
+    if (status != napi_ok) {
+        THROW(env, NULL, "Could not get value from object: Could not get property", false);
+    }
+    status = napi_typeof(env, *value, type);
+    if (status != napi_ok) {
+        THROW(env, NULL, "Could not get value from object: Could not get type", false);
+    }
+    return true;
 }

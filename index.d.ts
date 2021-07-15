@@ -51,6 +51,12 @@ export type Conversation = {
     name: string;
 }
 
+export enum TypingState {
+    NotTyping = 0,
+    Typing = 1,
+    Typed = 2,
+}
+
 /* Sub-modules */
 export class core {
     /**
@@ -114,6 +120,7 @@ export class accounts {
 
 export class messaging {
     static sendIM(handle: External, name: string, body: string);
+    static setIMTypingState(handle: External, name: string, state: TypingState);
     static sendChat(handle: External, name: string, body: string);
     static chatParams(handle: External, protocol: string);
     static joinChat(handle: External, components: {[key: string]:string;});
