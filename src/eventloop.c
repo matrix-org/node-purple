@@ -77,6 +77,7 @@ guint timeout_add (guint interval, GSourceFunc function, gpointer data) {
     timer->data = data;
     uv_handle_set_data(handle, timer);
     uv_timer_start(handle, call_callback, interval, 0);
+    guint handle = GPOINTER_TO_UINT(timer);
     return timer;
 }
 
@@ -113,8 +114,9 @@ void on_timer_close_complete(uv_handle_t* handle)
 *               found and removed.
 * @see purple_timeout_remove
 */
-gboolean timeout_remove(guint handle) {
-    g_return_val_if_fail(handle != NULL, false);
+gboolean timeout_remove(guint int_handle) {
+    g_return_val_if_fail(int_handle != NULL, false);
+    gpointer handle = GUINT_TO_POINTER(int_handle);
     s_evLoopTimer *timer = handle;
     uv_timer_stop(timer->handle);
     if (!uv_is_closing(timer->handle)) {
@@ -195,7 +197,8 @@ guint input_add(int fd, PurpleInputCondition cond,
     uv_poll_start(input_handle->handle, input_handle->cond, handle_input);
     input_event->parent = input_handle;
     input_handle->events = g_list_append(input_handle->events, input_event);
-    return input_event;
+    guint handle = GPOINTER_TO_UINT(input_event);
+    return handle;
 }
 
 /**
@@ -204,8 +207,9 @@ guint input_add(int fd, PurpleInputCondition cond,
 * @return       @c TRUE if the input handler was found and removed.
 * @see purple_input_remove
 */
-gboolean input_remove (guint handle) {
-    g_return_val_if_fail(handle != NULL, false);
+gboolean input_remove (guint int_handle) {
+    g_return_val_if_fail(int_handle != NULL, false);
+    gpointer handle = GUINT_TO_POINTER(int_handle);
     s_evLoopInputEvent *inputEvent = handle;
     s_evLoopInput *input = inputEvent->parent;
     if (g_list_find(input->events, inputEvent) == NULL) {
