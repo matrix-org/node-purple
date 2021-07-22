@@ -331,14 +331,6 @@ void* handleUserInfo(PurpleConnection *gc, const char *who, PurpleNotifyUserInfo
     return NULL;
 }
 
-void handleBuddyTyping(PurpleAccount *account, const char *name, void *data) {
-    handleTyping(account, name, true);
-}
-
-void handleBuddyTypingStopped(PurpleAccount *account, const char *name, void *data) {
-    handleTyping(account, name, false);
-}
-
 void handleTyping(PurpleAccount *account, const char *name, bool typing) {
     s_signalEventData *ev = malloc(sizeof(s_signalEventData));
     e_UserTyping *typingData = malloc(sizeof(e_UserTyping));
@@ -351,3 +343,10 @@ void handleTyping(PurpleAccount *account, const char *name, bool typing) {
     signalling_push(ev);
 }
 
+void handleBuddyTyping(PurpleAccount *account, const char *name, void *data) {
+    handleTyping(account, name, true);
+}
+
+void handleBuddyTypingStopped(PurpleAccount *account, const char *name, void *data) {
+    handleTyping(account, name, false);
+}

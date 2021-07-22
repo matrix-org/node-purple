@@ -75,7 +75,7 @@ guint timeout_add (guint interval, GSourceFunc function, gpointer data) {
     timer->handle = handle;
     timer->function = function;
     timer->data = data;
-    uv_handle_set_data(handle, timer);
+    uv_handle_set_data((uv_handle_t*)handle, timer);
     uv_timer_start(handle, call_callback, interval, 0);
     return GPOINTER_TO_UINT(timer);
 }
@@ -118,8 +118,8 @@ gboolean timeout_remove(guint int_handle) {
     g_return_val_if_fail(handle != NULL, false);
     s_evLoopTimer *timer = handle;
     uv_timer_stop(timer->handle);
-    if (!uv_is_closing(timer->handle)) {
-        uv_close(timer->handle, on_timer_close_complete);
+    if (!uv_is_closing((uv_handle_t*)timer->handle)) {
+        uv_close((uv_handle_t*)timer->handle, on_timer_close_complete);
     }
     return true;
 }
@@ -193,7 +193,7 @@ guint input_add(int fd, PurpleInputCondition cond,
         input_handle->handle = g_malloc(sizeof(uv_poll_t));
         input_handle->cond = cond;
         input_handle->events = NULL;
-        uv_handle_set_data(input_handle->handle, input_handle);
+        uv_handle_set_data((uv_handle_t*)input_handle->handle, input_handle);
         uv_poll_init(evLoopState.loop, input_handle->handle, fd);
         g_hash_table_insert(evLoopState.inputs, &input_handle->fd, input_handle);
     } else {

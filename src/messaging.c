@@ -275,8 +275,6 @@ napi_value messaging_set_im_typing_state(napi_env env, napi_callback info) {
     if (conv == NULL) {
         THROW(env, NULL, "Cannot set typing notification as conv doesn't exist", NULL);
     }
-    // Get the IM
-    PurpleConvIm* convIm = purple_conversation_get_im_data(conv);
 
     int32_t state;
 
