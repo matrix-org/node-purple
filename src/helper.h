@@ -16,4 +16,6 @@
 napi_value setupPurple(napi_env env, napi_callback_info info);
 napi_value pollEvents(napi_env env, napi_callback_info info);
 
+#define THROW(env, code, message, ...) do { napi_throw_error(env, code, message); return __VA_ARGS__; } while (0)
+
 #endif

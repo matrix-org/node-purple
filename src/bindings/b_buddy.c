@@ -1,4 +1,5 @@
 #include "b_buddy.h"
+#include "helper.h"
 
 napi_value nprpl_buddy_create(napi_env env, PurpleBuddy* buddy) {
     napi_value obj;
@@ -60,7 +61,7 @@ napi_value _buddy_find(napi_env env, napi_callback_info info) {
     napi_value n_out;
     napi_get_cb_info(env, info, &argc, opt, NULL, NULL);
     if (argc < 2) {
-      napi_throw_error(env, NULL, "takes two arguments");
+        THROW(env, NULL, "takes two arguments", NULL);
     }
     napi_get_value_external(env, opt[0], (void*)&account);
     char* name = napi_help_strfromval(env, opt[1]);
