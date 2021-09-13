@@ -170,8 +170,8 @@ void handle_input(uv_poll_t* handle, int status, int events) {
 guint input_add(int fd, PurpleInputCondition cond,
                 PurpleInputFunction func, gpointer user_data) {
     // Ensure we do not attempt to create a handle for invalid conditions.
-    g_return_if_fail(cond == PURPLE_INPUT_READ || cond == PURPLE_INPUT_WRITE);
-    g_return_if_fail(fd > 0);
+    g_return_val_if_fail(cond == PURPLE_INPUT_READ || cond == PURPLE_INPUT_WRITE, GPOINTER_TO_UINT(NULL));
+    g_return_val_if_fail(fd > 0, GPOINTER_TO_UINT(NULL));
 
     /**
      * There is some subtle logic to this function. LibUV can only handle
