@@ -139,7 +139,6 @@ void handle_input(uv_poll_t* handle, int status, int events) {
         // Unexpected positive status
         g_warning("handle_input unexpected positive status %i\n", status);
     }
-    int closedFD = -1;
     s_evLoopInput *input = handle->data;
     GList *elem;
     s_evLoopInputEvent *inputEvent;
@@ -186,7 +185,7 @@ guint input_add(int fd, PurpleInputCondition cond,
     input_event->func = func;
     input_event->user_data = user_data;
 
-    s_evLoopInput *input_handle = g_hash_table_lookup(evLoopState.inputs, &fd);
+    s_evLoopInput *input_handle = g_hash_table_lookup(evLoopState.inputs, GINT_TO_POINTER(fd));
     if (input_handle == NULL) {
         input_handle = g_malloc(sizeof(s_evLoopInput));
         input_handle->fd = fd;
@@ -195,7 +194,7 @@ guint input_add(int fd, PurpleInputCondition cond,
         input_handle->events = NULL;
         uv_handle_set_data((uv_handle_t*)input_handle->handle, input_handle);
         uv_poll_init(evLoopState.loop, input_handle->handle, fd);
-        g_hash_table_insert(evLoopState.inputs, &input_handle->fd, input_handle);
+        g_hash_table_insert(evLoopState.inputs, GINT_TO_POINTER(fd), input_handle);
     } else {
         // Nothing to do, except update the condition on the poll
         input_handle->cond |= cond;
@@ -230,7 +229,7 @@ gboolean input_remove (guint int_handle) {
         // Do not clean up the handle yet.
     }
     uv_poll_stop(input->handle);
-    g_hash_table_remove(evLoopState.inputs, &input->fd);
+    g_hash_table_remove(evLoopState.inputs, GINT_TO_POINTER(input->fd));
     free(input->handle);
     free(input);
     return true;
@@ -256,7 +255,7 @@ PurpleEventLoopUiOps* eventLoop_get(napi_env* env) {
         if (napi_get_uv_event_loop(*env, &evLoopState.loop) != napi_ok) {
             THROW(*env, NULL, "Could not get UV loop", NULL);
         }
-        evLoopState.inputs = g_hash_table_new_full(g_int_hash, g_int_equal, NULL, NULL);
+        evLoopState.inputs = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, NULL);
     }
     return &glib_eventloops;
 }
