@@ -98,7 +98,7 @@ guint timeout_add_seconds(guint interval, GSourceFunc function, gpointer data) {
     return timeout_add(interval*1000, function, data);
 }
 
-void on_timer_close_complete(uv_handle_t* handle)
+void on_handle_close_complete(uv_handle_t* handle)
 {
     free(handle->data);
     free(handle);
@@ -119,7 +119,7 @@ gboolean timeout_remove(guint int_handle) {
     s_evLoopTimer *timer = handle;
     uv_timer_stop(timer->handle);
     if (!uv_is_closing((uv_handle_t*)timer->handle)) {
-        uv_close((uv_handle_t*)timer->handle, on_timer_close_complete);
+        uv_close((uv_handle_t*)timer->handle, on_handle_close_complete);
     }
     return true;
 }
@@ -200,9 +200,11 @@ guint input_add(int fd, PurpleInputCondition cond,
         input_handle->cond |= cond;
     }
     // This will update the handle if the cond changed.
-    uv_poll_start(input_handle->handle, input_handle->cond, handle_input);
     input_event->parent = input_handle;
     input_handle->events = g_list_append(input_handle->events, input_event);
+
+    uv_poll_start(input_handle->handle, input_handle->cond, handle_input);
+    g_warning("input_add: produced %p (%u)", input_event, GPOINTER_TO_UINT(input_event));
     return GPOINTER_TO_UINT(input_event);
 }
 
@@ -214,24 +216,24 @@ guint input_add(int fd, PurpleInputCondition cond,
 */
 gboolean input_remove (guint int_handle) {
     gpointer handle = GUINT_TO_POINTER(int_handle);
+    g_warning("input_remove: removing %p (%u)", handle, int_handle);
     g_return_val_if_fail(handle != NULL, false);
     s_evLoopInputEvent *inputEvent = handle;
     s_evLoopInput *input = inputEvent->parent;
+    // Why is this here? XXX
     if (g_list_find(input->events, inputEvent) == NULL) {
         return false;
     }
     input->events = g_list_remove(input->events, inputEvent);
-    free(inputEvent);
+    g_free(inputEvent);
     guint listeners = g_list_length(input->events);
     if (listeners > 0) {
         // TODO: We should change the flags for the poll handle here.
         return true;
         // Do not clean up the handle yet.
     }
-    uv_poll_stop(input->handle);
+    uv_close((uv_handle_t*)input->handle, on_handle_close_complete);
     g_hash_table_remove(evLoopState.inputs, GINT_TO_POINTER(input->fd));
-    free(input->handle);
-    free(input);
     return true;
 }
 
@@ -270,7 +272,7 @@ void call_callback(uv_timer_t* handle) {
     gboolean res = timer->function(timer->data);
     // If the function succeeds, continue
     if (!res && !uv_is_closing((uv_handle_t *)timer->handle)) {
-        uv_close((uv_handle_t *)timer->handle, on_timer_close_complete);
+        uv_close((uv_handle_t *)timer->handle, on_handle_close_complete);
         return;
     }
     uv_timer_again(handle);
