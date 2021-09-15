@@ -28,6 +28,7 @@ typedef struct {
 } s_evLoopInput;
 
 typedef struct {
+    guint id;
     PurpleInputFunction func;
     gpointer user_data;
     int events;
@@ -39,6 +40,9 @@ typedef struct {
     uv_loop_t* loop;
     // fd -> s_evLoopInput
     GHashTable* inputs;
+    guint last_event_id;
+    // guint -> s_evLoopInputEvent
+    GHashTable* events;
 } s_evLoopState;
 
 void call_callback(uv_timer_t* handle);
@@ -203,9 +207,11 @@ guint input_add(int fd, PurpleInputCondition cond,
     input_event->parent = input_handle;
     input_handle->events = g_list_append(input_handle->events, input_event);
 
+    input_event->id = evLoopState.last_event_id++;
+    g_hash_table_insert(evLoopState.events, GUINT_TO_POINTER(input_event->id), input_event);
+
     uv_poll_start(input_handle->handle, input_handle->cond, handle_input);
-    g_warning("input_add: produced %p (%u)", input_event, GPOINTER_TO_UINT(input_event));
-    return GPOINTER_TO_UINT(input_event);
+    return input_event->id;
 }
 
 /**
@@ -214,11 +220,9 @@ guint input_add(int fd, PurpleInputCondition cond,
 * @return       @c TRUE if the input handler was found and removed.
 * @see purple_input_remove
 */
-gboolean input_remove (guint int_handle) {
-    gpointer handle = GUINT_TO_POINTER(int_handle);
-    g_warning("input_remove: removing %p (%u)", handle, int_handle);
-    g_return_val_if_fail(handle != NULL, false);
-    s_evLoopInputEvent *inputEvent = handle;
+gboolean input_remove (guint input_event_id) {
+    s_evLoopInputEvent *inputEvent = g_hash_table_lookup(evLoopState.events, GUINT_TO_POINTER(input_event_id));
+    g_return_val_if_fail(inputEvent != NULL, false);
     s_evLoopInput *input = inputEvent->parent;
     // Why is this here? XXX
     if (g_list_find(input->events, inputEvent) == NULL) {
@@ -258,6 +262,7 @@ PurpleEventLoopUiOps* eventLoop_get(napi_env* env) {
             THROW(*env, NULL, "Could not get UV loop", NULL);
         }
         evLoopState.inputs = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, NULL);
+        evLoopState.events = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, NULL);
     }
     return &glib_eventloops;
 }
