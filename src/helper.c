@@ -128,10 +128,12 @@ void wirePurpleSignalsIntoNode(napi_env env, napi_value eventFunc) {
     purple_signal_connect(conv_handle, "received-chat-msg", &handle,
                 PURPLE_CALLBACK(handleReceivedMessage), cbData);
 
+    cbData = malloc(sizeof(s_signalCbData));
     cbData->signal = "buddy-typing";
     purple_signal_connect(conv_handle, "buddy-typing", &handle,
                 PURPLE_CALLBACK(handleBuddyTyping), cbData);
 
+    cbData = malloc(sizeof(s_signalCbData));
     cbData->signal = "buddy-typing-stopped";
     purple_signal_connect(conv_handle, "buddy-typing-stopped", &handle,
                 PURPLE_CALLBACK(handleBuddyTypingStopped), cbData);
