@@ -292,7 +292,7 @@ napi_value messaging_set_im_typing_state(napi_env env, napi_callback_info info) 
 
     return NULL;
 
-} 
+}
 
 void messaging_bind_node(napi_env env,napi_value root) {
     napi_value namespace;

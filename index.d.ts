@@ -82,7 +82,7 @@ export class helper {
     /**
      * Configure purple to start without any UI features. A configuration object
      * should be provided.
-     * @param opts 
+     * @param opts
      */
     static setupPurple(opts: SetupArgs);
     static pollEvents(): Event[];

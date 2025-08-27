@@ -17,7 +17,7 @@ typedef struct {
 
 /**
  * Structure used to map one uv_poll_t to many events.
- * When the events list is empty, this should be culled. 
+ * When the events list is empty, this should be culled.
  */
 typedef struct {
     uv_poll_t* handle;
@@ -125,7 +125,7 @@ gboolean timeout_remove(guint int_handle) {
 }
 
 /**
-* Handle input event from a poll. 
+* Handle input event from a poll.
 *
 * @param handle    the libuv poll handle.
 * @param status    the status of the poll handle. 0 for OK, negative for not-ok.
