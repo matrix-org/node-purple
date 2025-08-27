@@ -1,5 +1,5 @@
 #include "b_buddy.h"
-#include "helper.h"
+#include "../helper.h"
 
 napi_value nprpl_buddy_create(napi_env env, PurpleBuddy* buddy) {
     napi_value obj;

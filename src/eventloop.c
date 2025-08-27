@@ -139,7 +139,6 @@ void handle_input(uv_poll_t* handle, int status, int events) {
         // Unexpected positive status
         g_warning("handle_input unexpected positive status %i\n", status);
     }
-    int closedFD = -1;
     s_evLoopInput *input = handle->data;
     GList *elem;
     s_evLoopInputEvent *inputEvent;
