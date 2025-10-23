@@ -173,33 +173,12 @@ napi_value setupPurple(napi_env env, napi_callback_info info) {
     napi_get_undefined(env, &n_undef);
 
     s_setupPurple opts;
-    PurpleConversationUiOps uiops = {
-        NULL,                      /* create_conversation  */
-        NULL,                      /* destroy_conversation */
-        NULL,                      /* write_chat           */
-        NULL,                      /* write_im             */
-        NULL,                      /* write_conv           */
-        NULL,                      /* chat_add_users       */
-        NULL,                      /* chat_rename_user     */
-        NULL,                      /* chat_remove_users    */
-        NULL,                      /* chat_update_user     */
-        NULL,                      /* present              */
-        NULL,                      /* has_focus            */
-        NULL,                      /* custom_smiley_add    */
-        NULL,                      /* custom_smiley_write  */
-        NULL,                      /* custom_smiley_close  */
-        NULL,                      /* send_confirm         */
-        NULL,
-        NULL,
-        NULL,
-        NULL
-    };
     PurpleNotifyUiOps *notifyopts = malloc(sizeof(PurpleNotifyUiOps));
     notifyopts->notify_userinfo = handleUserInfo;
     purple_notify_set_ui_ops(notifyopts);
     PurpleEventLoopUiOps *evLoopOps = eventLoop_get(&env);
     if (evLoopOps == NULL) {
-        return;
+        return n_undef;
     }
     purple_eventloop_set_ui_ops(evLoopOps);
 

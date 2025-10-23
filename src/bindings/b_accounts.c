@@ -300,7 +300,7 @@ napi_value _purple_accounts_get_enabled(napi_env env, napi_callback_info info) {
         THROW(env, NULL, "get_enabled takes one argument", NULL);
     }
 
-    napi_get_value_external(env, opt, &account);
+    napi_get_value_external(env, opt, (void*)&account);
     gboolean enabled = purple_account_get_enabled(account, STR_PURPLE_UI);
     napi_get_boolean(env, enabled, &n_out);
     return n_out;
@@ -315,7 +315,7 @@ napi_value _purple_accounts_set_enabled(napi_env env, napi_callback_info info) {
         THROW(env, NULL, "set_enabled takes two arguments", NULL);
     }
 
-    napi_get_value_external(env, opts[0], &account);
+    napi_get_value_external(env, opts[0], (void*)&account);
     bool enable;
     napi_get_value_bool(env, opts[1], &enable);
     // Gboolean nonsense

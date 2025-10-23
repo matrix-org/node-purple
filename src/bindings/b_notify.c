@@ -1,5 +1,5 @@
 #include "b_notify.h"
-#include "helper.h"
+#include "../helper.h"
 
 napi_value get_user_info(napi_env env, napi_callback_info info) {
     PurpleAccount *account;

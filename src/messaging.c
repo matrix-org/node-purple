@@ -246,7 +246,7 @@ napi_value messaging_findConversation(napi_env env, napi_callback_info info) {
     return nprpl_conv_create(env, conv);
 }
 
-napi_value messaging_set_im_typing_state(napi_env env, napi_callback info) {
+napi_value messaging_set_im_typing_state(napi_env env, napi_callback_info info) {
     PurpleAccount* account;
     size_t argc = 3;
     napi_value opts[3];
@@ -281,7 +281,7 @@ napi_value messaging_set_im_typing_state(napi_env env, napi_callback info) {
     if (napi_get_value_int32(env, opts[2], &state) != napi_ok) {
         THROW(env, NULL, "could not determine typing state from arg", NULL);
     }
-    g_return_if_fail(state >= 0 && state <= 2);
+    g_return_val_if_fail(state >= 0 && state <= 2, NULL);
 
     serv_send_typing(
         purple_conversation_get_gc(conv),
@@ -292,7 +292,7 @@ napi_value messaging_set_im_typing_state(napi_env env, napi_callback info) {
 
     return NULL;
 
-} 
+}
 
 void messaging_bind_node(napi_env env,napi_value root) {
     napi_value namespace;
