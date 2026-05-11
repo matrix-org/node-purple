@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node_version: ['24', '25']
+        node_version: ['24', '26']
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
